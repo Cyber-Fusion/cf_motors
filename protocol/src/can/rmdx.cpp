@@ -44,11 +44,11 @@ namespace cf_motors {
 namespace rmdx {
 
 /*
-This command can read the parameters of current, speed, position loop KP and
-KI at one time, and the data type is uint8_t. The system sets the maximum
-range of PI parameters according to the motor model, and then divides it
-equally according to the maximum range of uint8_t of 256 units. Users only
-need to adjust 0-256 units.
+  This command can read the parameters of current, speed, position loop KP and
+  KI at one time, and the data type is uint8_t. The system sets the maximum
+  range of PI parameters according to the motor model, and then divides it
+  equally according to the maximum range of uint8_t of 256 units. Users only
+  need to adjust 0-256 units.
 */
 ::cf_motors::bridges::CanMsg RMDX::NewReadPIDMessage(const uint32_t id) const {
   auto data = std::array<uint8_t, 8>();
@@ -65,11 +65,11 @@ RMDX::AsReadPIDResponse(const ::cf_motors::bridges::CanMsg &msg) const {
 }
 
 /*
-This command can write the parameters of current, speed, position loop KP and KI
-to RAM at one time, and it will not be saved after power off. The data type is
-uint8_t. The system sets the maximum range of PI parameters according to the
-motor model, and then divides it equally according to the maximum range of
-uint8_t of 256 units. Users only need to adjust 0-256 units.
+  This command can write the parameters of current, speed, position loop KP and
+  KI to RAM at one time, and it will not be saved after power off. The data type
+  is uint8_t. The system sets the maximum range of PI parameters according to
+  the motor model, and then divides it equally according to the maximum range of
+  uint8_t of 256 units. Users only need to adjust 0-256 units.
 */
 ::cf_motors::bridges::CanMsg
 RMDX::NewWritePIDParametersMessage(const uint32_t id,
@@ -100,8 +100,8 @@ RMDX::AsWritePIDResponse(const ::cf_motors::bridges::CanMsg &msg,
 }
 
 /*
-The host sends this command to read the acceleration parameters of the current
-motor
+  The host sends this command to read the acceleration parameters of the current
+  motor
 */
 ::cf_motors::bridges::CanMsg
 RMDX::NewReadAccelerationCommand(const uint32_t id) const {
@@ -111,9 +111,9 @@ RMDX::NewReadAccelerationCommand(const uint32_t id) const {
 }
 
 /*
-The acceleration parameter is included in the drive response data. Acceleration
-data Accel is int32_t type, the unit is 1dps/s, and the parameter range is
-50-60000.
+  The acceleration parameter is included in the drive response data.
+  Acceleration data Accel is int32_t type, the unit is 1dps/s, and the parameter
+  range is 50-60000.
 */
 uint32_t RMDX::AsReadAccelerationResponse(
     const ::cf_motors::bridges::CanMsg &msg) const {
@@ -124,11 +124,11 @@ uint32_t RMDX::AsReadAccelerationResponse(
 }
 
 /*
-The host sends this command to write the acceleration and deceleration into RAM
-and ROM, which can be saved after power off. Acceleration data Accel is of
-uint32_t type, the unit is 1dps/s, and the parameter range is 100-60000. The
-command contains the acceleration and deceleration values in the position and
-velocity planning, which are determined by the index value.
+  The host sends this command to write the acceleration and deceleration into
+  RAM and ROM, which can be saved after power off. Acceleration data Accel is of
+  uint32_t type, the unit is 1dps/s, and the parameter range is 100-60000. The
+  command contains the acceleration and deceleration values in the position and
+  velocity planning, which are determined by the index value.
 */
 ::cf_motors::bridges::CanMsg
 RMDX::NewWriteAccelerationCommand(const uint32_t id,
@@ -143,8 +143,8 @@ RMDX::NewWriteAccelerationCommand(const uint32_t id,
 }
 
 /*
-The motor will reply to the host after receiving the command, and the reply
-command is the same as the received command.
+  The motor will reply to the host after receiving the command, and the reply
+  command is the same as the received command.
 */
 uint32_t RMDX::AsWriteAccelerationCommandResponse(
     const ::cf_motors::bridges::CanMsg &msg) const {
@@ -155,9 +155,9 @@ uint32_t RMDX::AsWriteAccelerationCommandResponse(
 }
 
 /*
-The host sends this command to read the multi-turn position of the encoder,
-which represents the rotation angle of the motor output shaft, including the
-multi-turn angle.
+  The host sends this command to read the multi-turn position of the encoder,
+  which represents the rotation angle of the motor output shaft, including the
+  multi-turn angle.
 */
 ::cf_motors::bridges::CanMsg
 RMDX::NewReadMultiTurnEncoderCommand(const uint32_t id) const {
@@ -167,11 +167,11 @@ RMDX::NewReadMultiTurnEncoderCommand(const uint32_t id) const {
 }
 
 /*
-The motor replies to the host after receiving the command, and the frame data
-contains the following parameters. Encoder multi-turn position encoder (int32_t
-type, value range of multi-turn encoder, 4 bytes of valid data), which is the
-value after subtracting the encoder's multi-turn zero offset (initial position)
-from the original position of the encoder.
+  The motor replies to the host after receiving the command, and the frame data
+  contains the following parameters. Encoder multi-turn position encoder
+  (int32_t type, value range of multi-turn encoder, 4 bytes of valid data),
+  which is the value after subtracting the encoder's multi-turn zero offset
+  (initial position) from the original position of the encoder.
 */
 uint32_t RMDX::AsReadMultiTurnEncoderCommandResponse(
     const ::cf_motors::bridges::CanMsg &msg) const {
@@ -183,8 +183,8 @@ uint32_t RMDX::AsReadMultiTurnEncoderCommandResponse(
 }
 
 /*
-The host sends this command to read the multi-turn encoder home position, ie the
-multi-turn encoder value without the zero offset (home position).
+  The host sends this command to read the multi-turn encoder home position, ie
+  the multi-turn encoder value without the zero offset (home position).
 */
 ::cf_motors::bridges::CanMsg
 RMDX::NewReadMultiTurnEncoderOriginalPositionCommand(const uint32_t id) const {
@@ -194,9 +194,9 @@ RMDX::NewReadMultiTurnEncoderOriginalPositionCommand(const uint32_t id) const {
 }
 
 /*
-The motor replies to the host after receiving the command, and the frame data
-contains the following parameters. Encoder multi-turn raw position encoderRaw
-(int32_t type, value range, valid data 4 bytes).
+  The motor replies to the host after receiving the command, and the frame data
+  contains the following parameters. Encoder multi-turn raw position encoderRaw
+  (int32_t type, value range, valid data 4 bytes).
 */
 uint32_t RMDX::AsReadMultiTurnEncoderOriginalPositionCommandResponse(
     const ::cf_motors::bridges::CanMsg &msg) const {
@@ -207,8 +207,8 @@ uint32_t RMDX::AsReadMultiTurnEncoderOriginalPositionCommandResponse(
 }
 
 /*
-The host sends this command to read the multi-turn zero offset value (initial
-position) of the encoder.
+  The host sends this command to read the multi-turn zero offset value (initial
+  position) of the encoder.
 */
 ::cf_motors::bridges::CanMsg
 RMDX::NewReadMultiTurnEncoderZeroOffsetCommand(const uint32_t id) const {
@@ -218,9 +218,9 @@ RMDX::NewReadMultiTurnEncoderZeroOffsetCommand(const uint32_t id) const {
 }
 
 /*
-The motor replies to the host after receiving the command, and the frame data
-contains the following parameters. Encoder multi-turn zero offset encoderOffset
-(int32_t type, value range, valid data 4 bytes).
+  The motor replies to the host after receiving the command, and the frame data
+  contains the following parameters. Encoder multi-turn zero offset
+  encoderOffset (int32_t type, value range, valid data 4 bytes).
 */
 uint32_t RMDX::AsReadMultiTurnEncoderZeroOffsetCommandResponse(
     const ::cf_motors::bridges::CanMsg &msg) const {
@@ -231,12 +231,13 @@ uint32_t RMDX::AsReadMultiTurnEncoderZeroOffsetCommandResponse(
 }
 
 /*
-The host sends this command to set the zero offset (initial position) of the
-encoder, where the encoder multi-turn value to be written, encoderOffset, is of
-type int32_t, (value range, 4 bytes of valid data). Note: After writing the
-position of the new zero point, the motor needs to be restarted to be effective.
-Because of the change of the zero offset, the new zero offset (initial position)
-should be used as a reference when setting the target position.
+  The host sends this command to set the zero offset (initial position) of the
+  encoder, where the encoder multi-turn value to be written, encoderOffset, is
+  of type int32_t, (value range, 4 bytes of valid data). Note: After writing the
+  position of the new zero point, the motor needs to be restarted to be
+  effective. Because of the change of the zero offset, the new zero offset
+  (initial position) should be used as a reference when setting the target
+  position.
 */
 ::cf_motors::bridges::CanMsg
 RMDX::NewWriteMultiTurnValueToROMAsMotorZeroCommand(
@@ -248,8 +249,8 @@ RMDX::NewWriteMultiTurnValueToROMAsMotorZeroCommand(
 }
 
 /*
-The motor replies to the host after receiving the command, and the frame data is
-the same as the command sent by the host.
+  The motor replies to the host after receiving the command, and the frame data
+  is the same as the command sent by the host.
 */
 uint32_t RMDX::AsWriteMultiTurnValueToROMAsMotorZeroCommandResponse(
     const ::cf_motors::bridges::CanMsg &msg) const {

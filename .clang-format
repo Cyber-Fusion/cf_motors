@@ -182,6 +182,8 @@ StatementMacros:
 TabWidth:        8
 UseCRLF:         false
 UseTab:          Never
+# Ensure there is an empty line at the end of each file.
+InsertNewlineAtEOF: true
 WhitespaceSensitiveMacros:
   - STRINGIZE
   - PP_STRINGIZE

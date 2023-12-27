@@ -1,14 +1,12 @@
-
 set (LIBNAME "protocol")
 
 set ( SOURCES
 	${CMAKE_CURRENT_SOURCE_DIR}/src/can/rmdx.cpp
-	)
+)
 
 set ( HEADERS
 	${CMAKE_CURRENT_SOURCE_DIR}/include/protocol/can/rmdx.hpp
-	)
-
+)
 
 add_library(${LIBNAME} ${SOURCES} ${HEADERS})
 

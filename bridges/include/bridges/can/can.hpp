@@ -1,8 +1,3 @@
-
-
-// #include "can_msgs/msg/frame.hpp"
-// #include "can_msgs/srv/can_request.hpp"
-
 #include <bridges/can/types.hpp>
 
 #include <linux/can/raw.h>
@@ -49,7 +44,7 @@ private:
 };
 
 /*
-    @brief: Binding callbacks.
+  @brief: Binding callbacks.
 */
 template <CanMessageHandler HandlerT> void CanBridge<HandlerT>::Run() {
   strcpy(ifr_.ifr_name, can_socket_.c_str());
@@ -69,13 +64,10 @@ template <CanMessageHandler HandlerT> void CanBridge<HandlerT>::Run() {
                                     std::ref(rec_frame_), std::ref(stream_)));
 
   signals_.async_wait(std::bind(&CanBridge::stop, this));
-
-  // std::thread ios_thread(std::bind(&boost::asio::io_service::run, ios_));
-  // ios_thread.detach();
 }
 
 /*
-    @brief: Sending message to CAN.
+  @brief: Sending message to CAN.
 */
 template <CanMessageHandler HandlerT>
 void CanBridge<HandlerT>::SendCommand(const CanMsg msg) {
@@ -108,7 +100,7 @@ void CanBridge<HandlerT>::SendCommand(const CanMsg msg) {
 }
 
 /*
-    @brief: Handling  message from CAN.
+  @brief: Handling  message from CAN.
 */
 template <CanMessageHandler HandlerT>
 void CanBridge<HandlerT>::on_message(
@@ -132,12 +124,12 @@ void CanBridge<HandlerT>::on_message(
 }
 
 /*
-    @brief: Invokes after sending message to CAN.
+  @brief: Invokes after sending message to CAN.
 */
 template <CanMessageHandler HandlerT> void CanBridge<HandlerT>::on_send() {}
 
 /*
-    @brief : Stopping io_service.
+  @brief : Stopping io_service.
 */
 template <CanMessageHandler HandlerT> void CanBridge<HandlerT>::stop() {
   ios_.stop();
