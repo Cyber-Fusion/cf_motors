@@ -45,20 +45,33 @@ public:
 
   /* Multi-turn encoder commands. --------------------------------- */
 
-  // ::cf_motors::bridges::CanMsg
-  // NewReadMultiTurnEncoderCommand(const uint32_t id) const;
-  // uint32_t AsReadMultiTurnEncoderCommandResponse(
-  //     const ::cf_motors::bridges::CanMsg &msg) const;
+  ::cf_motors::bridges::CanMsg
+  NewReadMultiTurnEncoderCommand(const uint32_t id) const;
+  uint32_t AsReadMultiTurnEncoderCommandResponse(
+      const ::cf_motors::bridges::CanMsg &msg) const;
 
-  // ::cf_motors::bridges::CanMsg
-  // NewReadMultiTurnEncoderOriginalPositionCommand(const uint32_t id) const;
-  // ::cf_motors::bridges::CanMsg
-  // NewReadMultiTurnEncoderZeroOffsetCommand(const uint32_t) const;
+  ::cf_motors::bridges::CanMsg
+  NewReadMultiTurnEncoderOriginalPositionCommand(const uint32_t id) const;
+  uint32_t AsReadMultiTurnEncoderOriginalPositionCommandResponse(
+      const ::cf_motors::bridges::CanMsg &msg) const;
+
+  ::cf_motors::bridges::CanMsg
+  NewReadMultiTurnEncoderZeroOffsetCommand(const uint32_t id) const;
+  uint32_t AsReadMultiTurnEncoderZeroOffsetCommandResponse(
+      const ::cf_motors::bridges::CanMsg &msg) const;
+
+  ::cf_motors::bridges::CanMsg
+  NewWriteMultiTurnValueToROMAsMotorZeroCommand(const uint32_t id,
+                                                const uint32_t value) const;
+  uint32_t AsWriteMultiTurnValueToROMAsMotorZeroCommandResponse(
+      const ::cf_motors::bridges::CanMsg &msg) const;
 
 private:
   ::std::array<double, 6>
   parse_pid_parameters(const ::std::array<uint8_t, 8> &data) const;
-  uint32_t parse_acceleration_value(const ::std::array<uint8_t, 8> &data) const;
+  uint32_t parse_last_4_bytes(const ::std::array<uint8_t, 8> &data) const;
+  void place_parameter_in_last_4_bytes(::std::array<uint8_t, 8> &data,
+                                       uint32_t parameter) const;
 
 private:
   double maximum_value_of_current_loop_;

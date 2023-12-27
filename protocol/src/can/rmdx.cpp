@@ -120,7 +120,7 @@ uint32_t RMDX::AsReadAccelerationResponse(
   if (msg.data[0] != READ_ACCELERATION_COMMAND) {
     throw ::std::invalid_argument("can't parse other command");
   }
-  return this->parse_acceleration_value(msg.data);
+  return this->parse_last_4_bytes(msg.data);
 }
 
 /*
@@ -138,9 +138,7 @@ RMDX::NewWriteAccelerationCommand(const uint32_t id,
   std::array<uint8_t, 8> data;
   data[0] = WRITE_ACCELERATION_COMMAND_TO_RAM;
   data[1] = af;
-  for (size_t i = 0; i < 4; ++i) {
-    data[4 + i] = static_cast<uint8_t>((acceleration >> ((3 - i) * 8)) & 0xFF);
-  }
+  this->place_parameter_in_last_4_bytes(data, acceleration);
   return ::cf_motors::bridges::CanMsg{.id = id, .data = data};
 }
 
@@ -153,9 +151,116 @@ uint32_t RMDX::AsWriteAccelerationCommandResponse(
   if (msg.data[0] != WRITE_ACCELERATION_COMMAND_TO_RAM) {
     throw ::std::invalid_argument("can't parse other command");
   }
-  return parse_acceleration_value(msg.data);
+  return parse_last_4_bytes(msg.data);
 }
 
+/*
+The host sends this command to read the multi-turn position of the encoder,
+which represents the rotation angle of the motor output shaft, including the
+multi-turn angle.
+*/
+::cf_motors::bridges::CanMsg
+RMDX::NewReadMultiTurnEncoderCommand(const uint32_t id) const {
+  ::std::array<uint8_t, 8> data;
+  data[0] = READ_MULTI_TURN_ENCODER_POSITION_DATA_COMMAND;
+  return ::cf_motors::bridges::CanMsg{.id = id, .data = data};
+}
+
+/*
+The motor replies to the host after receiving the command, and the frame data
+contains the following parameters. Encoder multi-turn position encoder (int32_t
+type, value range of multi-turn encoder, 4 bytes of valid data), which is the
+value after subtracting the encoder's multi-turn zero offset (initial position)
+from the original position of the encoder.
+*/
+uint32_t RMDX::AsReadMultiTurnEncoderCommandResponse(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  if (msg.data[0] != READ_MULTI_TURN_ENCODER_POSITION_DATA_COMMAND) {
+    throw ::std::invalid_argument("can't parse other command");
+  }
+
+  return this->parse_last_4_bytes(msg.data);
+}
+
+/*
+The host sends this command to read the multi-turn encoder home position, ie the
+multi-turn encoder value without the zero offset (home position).
+*/
+::cf_motors::bridges::CanMsg
+RMDX::NewReadMultiTurnEncoderOriginalPositionCommand(const uint32_t id) const {
+  ::std::array<uint8_t, 8> data;
+  data[0] = READ_MULTI_TURN_ENCODER_ORIGINAL_POSITION_DATA_COMMAND;
+  return ::cf_motors::bridges::CanMsg{.id = id, .data = data};
+}
+
+/*
+The motor replies to the host after receiving the command, and the frame data
+contains the following parameters. Encoder multi-turn raw position encoderRaw
+(int32_t type, value range, valid data 4 bytes).
+*/
+uint32_t RMDX::AsReadMultiTurnEncoderOriginalPositionCommandResponse(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  if (msg.data[0] != READ_MULTI_TURN_ENCODER_ORIGINAL_POSITION_DATA_COMMAND) {
+    throw ::std::invalid_argument("can't parse other command");
+  }
+  return this->parse_last_4_bytes(msg.data);
+}
+
+/*
+The host sends this command to read the multi-turn zero offset value (initial
+position) of the encoder.
+*/
+::cf_motors::bridges::CanMsg
+RMDX::NewReadMultiTurnEncoderZeroOffsetCommand(const uint32_t id) const {
+  ::std::array<uint8_t, 8> data;
+  data[0] = READ_MULTI_TURN_ENCODER_ZERO_OFFSET_DATA_COMMAND;
+  return ::cf_motors::bridges::CanMsg{.id = id, .data = data};
+}
+
+/*
+The motor replies to the host after receiving the command, and the frame data
+contains the following parameters. Encoder multi-turn zero offset encoderOffset
+(int32_t type, value range, valid data 4 bytes).
+*/
+uint32_t RMDX::AsReadMultiTurnEncoderZeroOffsetCommandResponse(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  if (msg.data[0] != READ_MULTI_TURN_ENCODER_ZERO_OFFSET_DATA_COMMAND) {
+    throw ::std::invalid_argument("can't parse other command");
+  }
+  return this->parse_last_4_bytes(msg.data);
+}
+
+/*
+The host sends this command to set the zero offset (initial position) of the
+encoder, where the encoder multi-turn value to be written, encoderOffset, is of
+type int32_t, (value range, 4 bytes of valid data). Note: After writing the
+position of the new zero point, the motor needs to be restarted to be effective.
+Because of the change of the zero offset, the new zero offset (initial position)
+should be used as a reference when setting the target position.
+*/
+::cf_motors::bridges::CanMsg
+RMDX::NewWriteMultiTurnValueToROMAsMotorZeroCommand(
+    const uint32_t id, const uint32_t value) const {
+  ::std::array<uint8_t, 8> data;
+  data[0] = WRITE_ENCODER_MULTI_TURN_VALUE_TO_ROM_AS_MOTOR_ZERO_COMMAND;
+  this->place_parameter_in_last_4_bytes(data, value);
+  return ::cf_motors::bridges::CanMsg{.id = id, .data = data};
+}
+
+/*
+The motor replies to the host after receiving the command, and the frame data is
+the same as the command sent by the host.
+*/
+uint32_t RMDX::AsWriteMultiTurnValueToROMAsMotorZeroCommandResponse(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  if (msg.data[0] !=
+      WRITE_ENCODER_MULTI_TURN_VALUE_TO_ROM_AS_MOTOR_ZERO_COMMAND) {
+    throw ::std::invalid_argument("can't parse other command");
+  }
+  return this->parse_last_4_bytes(msg.data);
+}
+
+// Helper functions with buff opts.
 ::std::array<double, 6>
 RMDX::parse_pid_parameters(const ::std::array<uint8_t, 8> &data) const {
   auto guard = read_lock(this->guard_);
@@ -188,8 +293,7 @@ RMDX::parse_pid_parameters(const ::std::array<uint8_t, 8> &data) const {
   return actualParameters;
 }
 
-uint32_t
-RMDX::parse_acceleration_value(const ::std::array<uint8_t, 8> &data) const {
+uint32_t RMDX::parse_last_4_bytes(const ::std::array<uint8_t, 8> &data) const {
   uint32_t acceleration = 0;
 
   // (data[4] is the lowest bit, data[7] is the highest bit)
@@ -197,6 +301,13 @@ RMDX::parse_acceleration_value(const ::std::array<uint8_t, 8> &data) const {
     acceleration = (acceleration << 8) | data[i];
   }
   return acceleration;
+}
+
+void RMDX::place_parameter_in_last_4_bytes(::std::array<uint8_t, 8> &data,
+                                           uint32_t parameter) const {
+  for (size_t i = 0; i < 4; ++i) {
+    data[4 + i] = static_cast<uint8_t>((parameter >> ((3 - i) * 8)) & 0xFF);
+  }
 }
 
 } // namespace rmdx
