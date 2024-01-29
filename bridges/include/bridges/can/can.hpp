@@ -1,3 +1,5 @@
+#pragma once
+
 #include <bridges/can/types.hpp>
 
 #include <linux/can/raw.h>
@@ -136,7 +138,7 @@ template <CanMessageHandler HandlerT> void CanBridge<HandlerT>::stop() {
   signals_.clear();
 }
 
-template class CanBridge<FakeCanMessageHandler>;
+// template class CanBridge<FakeCanMessageHandler>;
 
 void some_function();
 

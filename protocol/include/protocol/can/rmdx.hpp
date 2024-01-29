@@ -1,3 +1,5 @@
+#pragma once
+
 #include <bridges/can/types.hpp>
 
 #include <mutex>
@@ -30,7 +32,7 @@ public:
   AsWritePIDResponse(const ::cf_motors::bridges::CanMsg &msg,
                      bool toRAM = true) const;
 
-  /* Acceleration commands.  -------------------------------*/
+  /* Acceleration commands.  ------------------------------- */
 
   ::cf_motors::bridges::CanMsg
   NewReadAccelerationCommand(const uint32_t id) const;
