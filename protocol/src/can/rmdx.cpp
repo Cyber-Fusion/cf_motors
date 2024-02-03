@@ -1,5 +1,7 @@
 #include <protocol/can/rmdx.hpp>
 
+#include <cassert>
+
 namespace cf_motors {
 
 /*
@@ -43,6 +45,38 @@ namespace cf_motors {
 
 namespace rmdx {
 
+namespace detail {
+
+template <typename T>
+concept PrimitiveType = std::is_arithmetic_v<T>;
+
+template <PrimitiveType T>
+T parse_value(const ::cf_motors::bridges::CanMsg &msg, const size_t from,
+              const size_t to) {
+  assert(sizeof(T) == (to - from));
+  assert((to > from) && (to < 8));
+
+  T res;
+  for (size_t i = from; i <= to; ++i) {
+    res = (res << 8) | msg.data[i];
+  }
+  return res;
+}
+
+template <PrimitiveType T>
+void place_value(::cf_motors::bridges::CanMsg &msg, const T value,
+                 const size_t from, const size_t to) {
+  assert(sizeof(T) == (to - from));
+  assert((to > from) && (to < 8));
+
+  const size_t vsize = sizeof(T) - 1;
+  for (size_t i = from; i <= to; ++i) {
+    msg.data[from + i] =
+        static_cast<uint8_t>((value >> ((vsize - i) * 8)) & 0xFF);
+  }
+}
+} // namespace detail
+
 /*
   This command can read the parameters of current, speed, position loop KP and
   KI at one time, and the data type is uint8_t. The system sets the maximum
@@ -51,17 +85,13 @@ namespace rmdx {
   need to adjust 0-256 units.
 */
 ::cf_motors::bridges::CanMsg RMDX::NewReadPIDMessage(const uint32_t id) const {
-  auto data = std::array<uint8_t, 8>();
-  data[0] = READ_PID_PARAMETER_COMMAND;
-  return ::cf_motors::bridges::CanMsg{.id = id, .data = data};
+  return create_message_with_command_code(id, READ_PID_PARAMETER_COMMAND);
 }
 
 ::std::array<double, 6>
 RMDX::AsReadPIDResponse(const ::cf_motors::bridges::CanMsg &msg) const {
-  if (msg.data[0] != READ_PID_PARAMETER_COMMAND) {
-    throw ::std::invalid_argument("can't parse other command");
-  }
-  return this->parse_pid_parameters(msg.data);
+  validate_message_command_id(msg, READ_PID_PARAMETER_COMMAND);
+  return parse_pid_parameters(msg.data);
 }
 
 /*
@@ -75,27 +105,29 @@ RMDX::AsReadPIDResponse(const ::cf_motors::bridges::CanMsg &msg) const {
 RMDX::NewWritePIDParametersMessage(const uint32_t id,
                                    const ::std::array<double, 6> &params,
                                    bool toRAM) const {
-
-  auto data = ::std::array<uint8_t, 8>();
+  ::cf_motors::bridges::CanMsg msg;
   if (toRAM) {
-    data[0] = WRITE_PID_PARAMETERS_TO_RAM_COMMAND;
+    msg = create_message_with_command_code(id,
+                                           WRITE_PID_PARAMETERS_TO_RAM_COMMAND);
   } else {
-    data[0] = WRITE_PID_PARAMETERS_TO_ROM_COMMAND;
+    msg = create_message_with_command_code(id,
+                                           WRITE_PID_PARAMETERS_TO_ROM_COMMAND);
   }
 
-  data[1] = 0x00;
-  ::std::copy(params.begin(), params.end(), data.begin() + 2);
-  return ::cf_motors::bridges::CanMsg{.id = id, .data = data};
+  msg.data[1] = 0x00;
+  ::std::copy(params.begin(), params.end(), msg.data.begin() + 2);
+  return msg;
 }
 
 ::std::array<double, 6>
 RMDX::AsWritePIDResponse(const ::cf_motors::bridges::CanMsg &msg,
                          bool toRAM) const {
-
-  if ((toRAM && msg.data[0] != WRITE_PID_PARAMETERS_TO_RAM_COMMAND) ||
-      (!toRAM && msg.data[0] != WRITE_PID_PARAMETERS_TO_ROM_COMMAND)) {
-    throw ::std::invalid_argument("can't parse other command");
+  if (toRAM) {
+    validate_message_command_id(msg, WRITE_PID_PARAMETERS_TO_RAM_COMMAND);
+  } else {
+    validate_message_command_id(msg, WRITE_PID_PARAMETERS_TO_ROM_COMMAND);
   }
+
   return this->parse_pid_parameters(msg.data);
 }
 
@@ -105,9 +137,7 @@ RMDX::AsWritePIDResponse(const ::cf_motors::bridges::CanMsg &msg,
 */
 ::cf_motors::bridges::CanMsg
 RMDX::NewReadAccelerationCommand(const uint32_t id) const {
-  auto data = ::std::array<uint8_t, 8>();
-  data[0] = READ_ACCELERATION_COMMAND;
-  return ::cf_motors::bridges::CanMsg{.id = id, .data = data};
+  return create_message_with_command_code(id, READ_ACCELERATION_COMMAND);
 }
 
 /*
@@ -117,10 +147,8 @@ RMDX::NewReadAccelerationCommand(const uint32_t id) const {
 */
 uint32_t RMDX::AsReadAccelerationResponse(
     const ::cf_motors::bridges::CanMsg &msg) const {
-  if (msg.data[0] != READ_ACCELERATION_COMMAND) {
-    throw ::std::invalid_argument("can't parse other command");
-  }
-  return this->parse_last_4_bytes(msg.data);
+  validate_message_command_id(msg, READ_ACCELERATION_COMMAND);
+  return detail::parse_value<uint32_t>(msg, 4, 7);
 }
 
 /*
@@ -135,11 +163,11 @@ RMDX::NewWriteAccelerationCommand(const uint32_t id,
                                   const uint32_t acceleration,
                                   const acceleration_functions af) const {
   // Convert the uint32_t value to a std::array<uint8_t, 8>
-  std::array<uint8_t, 8> data;
-  data[0] = WRITE_ACCELERATION_COMMAND_TO_RAM;
-  data[1] = af;
-  this->place_parameter_in_last_4_bytes(data, acceleration);
-  return ::cf_motors::bridges::CanMsg{.id = id, .data = data};
+  auto msg =
+      create_message_with_command_code(id, WRITE_ACCELERATION_COMMAND_TO_RAM);
+  msg.data[1] = af;
+  detail::place_value<uint32_t>(msg, acceleration, 4, 7);
+  return msg;
 }
 
 /*
@@ -148,10 +176,8 @@ RMDX::NewWriteAccelerationCommand(const uint32_t id,
 */
 uint32_t RMDX::AsWriteAccelerationCommandResponse(
     const ::cf_motors::bridges::CanMsg &msg) const {
-  if (msg.data[0] != WRITE_ACCELERATION_COMMAND_TO_RAM) {
-    throw ::std::invalid_argument("can't parse other command");
-  }
-  return parse_last_4_bytes(msg.data);
+  validate_message_command_id(msg, WRITE_ACCELERATION_COMMAND_TO_RAM);
+  return detail::parse_value<uint32_t>(msg, 4, 7);
 }
 
 /*
@@ -161,9 +187,8 @@ uint32_t RMDX::AsWriteAccelerationCommandResponse(
 */
 ::cf_motors::bridges::CanMsg
 RMDX::NewReadMultiTurnEncoderCommand(const uint32_t id) const {
-  ::std::array<uint8_t, 8> data;
-  data[0] = READ_MULTI_TURN_ENCODER_POSITION_DATA_COMMAND;
-  return ::cf_motors::bridges::CanMsg{.id = id, .data = data};
+  return create_message_with_command_code(
+      id, READ_MULTI_TURN_ENCODER_POSITION_DATA_COMMAND);
 }
 
 /*
@@ -175,11 +200,9 @@ RMDX::NewReadMultiTurnEncoderCommand(const uint32_t id) const {
 */
 uint32_t RMDX::AsReadMultiTurnEncoderCommandResponse(
     const ::cf_motors::bridges::CanMsg &msg) const {
-  if (msg.data[0] != READ_MULTI_TURN_ENCODER_POSITION_DATA_COMMAND) {
-    throw ::std::invalid_argument("can't parse other command");
-  }
-
-  return this->parse_last_4_bytes(msg.data);
+  validate_message_command_id(msg,
+                              READ_MULTI_TURN_ENCODER_POSITION_DATA_COMMAND);
+  return detail::parse_value<uint32_t>(msg, 4, 7);
 }
 
 /*
@@ -188,9 +211,8 @@ uint32_t RMDX::AsReadMultiTurnEncoderCommandResponse(
 */
 ::cf_motors::bridges::CanMsg
 RMDX::NewReadMultiTurnEncoderOriginalPositionCommand(const uint32_t id) const {
-  ::std::array<uint8_t, 8> data;
-  data[0] = READ_MULTI_TURN_ENCODER_ORIGINAL_POSITION_DATA_COMMAND;
-  return ::cf_motors::bridges::CanMsg{.id = id, .data = data};
+  return create_message_with_command_code(
+      id, READ_MULTI_TURN_ENCODER_ORIGINAL_POSITION_DATA_COMMAND);
 }
 
 /*
@@ -200,10 +222,9 @@ RMDX::NewReadMultiTurnEncoderOriginalPositionCommand(const uint32_t id) const {
 */
 uint32_t RMDX::AsReadMultiTurnEncoderOriginalPositionCommandResponse(
     const ::cf_motors::bridges::CanMsg &msg) const {
-  if (msg.data[0] != READ_MULTI_TURN_ENCODER_ORIGINAL_POSITION_DATA_COMMAND) {
-    throw ::std::invalid_argument("can't parse other command");
-  }
-  return this->parse_last_4_bytes(msg.data);
+  validate_message_command_id(
+      msg, READ_MULTI_TURN_ENCODER_ORIGINAL_POSITION_DATA_COMMAND);
+  return detail::parse_value<uint32_t>(msg, 4, 7);
 }
 
 /*
@@ -212,9 +233,8 @@ uint32_t RMDX::AsReadMultiTurnEncoderOriginalPositionCommandResponse(
 */
 ::cf_motors::bridges::CanMsg
 RMDX::NewReadMultiTurnEncoderZeroOffsetCommand(const uint32_t id) const {
-  ::std::array<uint8_t, 8> data;
-  data[0] = READ_MULTI_TURN_ENCODER_ZERO_OFFSET_DATA_COMMAND;
-  return ::cf_motors::bridges::CanMsg{.id = id, .data = data};
+  return create_message_with_command_code(
+      id, READ_MULTI_TURN_ENCODER_ZERO_OFFSET_DATA_COMMAND);
 }
 
 /*
@@ -224,10 +244,9 @@ RMDX::NewReadMultiTurnEncoderZeroOffsetCommand(const uint32_t id) const {
 */
 uint32_t RMDX::AsReadMultiTurnEncoderZeroOffsetCommandResponse(
     const ::cf_motors::bridges::CanMsg &msg) const {
-  if (msg.data[0] != READ_MULTI_TURN_ENCODER_ZERO_OFFSET_DATA_COMMAND) {
-    throw ::std::invalid_argument("can't parse other command");
-  }
-  return this->parse_last_4_bytes(msg.data);
+  validate_message_command_id(msg,
+                              READ_MULTI_TURN_ENCODER_ZERO_OFFSET_DATA_COMMAND);
+  return detail::parse_value<uint32_t>(msg, 4, 7);
 }
 
 /*
@@ -242,10 +261,10 @@ uint32_t RMDX::AsReadMultiTurnEncoderZeroOffsetCommandResponse(
 ::cf_motors::bridges::CanMsg
 RMDX::NewWriteMultiTurnValueToROMAsMotorZeroCommand(
     const uint32_t id, const uint32_t value) const {
-  ::std::array<uint8_t, 8> data;
-  data[0] = WRITE_ENCODER_MULTI_TURN_VALUE_TO_ROM_AS_MOTOR_ZERO_COMMAND;
-  this->place_parameter_in_last_4_bytes(data, value);
-  return ::cf_motors::bridges::CanMsg{.id = id, .data = data};
+  auto msg = create_message_with_command_code(
+      id, WRITE_ENCODER_MULTI_TURN_VALUE_TO_ROM_AS_MOTOR_ZERO_COMMAND);
+  detail::place_value<uint32_t>(msg, value, 4, 7);
+  return msg;
 }
 
 /*
@@ -254,11 +273,382 @@ RMDX::NewWriteMultiTurnValueToROMAsMotorZeroCommand(
 */
 uint32_t RMDX::AsWriteMultiTurnValueToROMAsMotorZeroCommandResponse(
     const ::cf_motors::bridges::CanMsg &msg) const {
-  if (msg.data[0] !=
-      WRITE_ENCODER_MULTI_TURN_VALUE_TO_ROM_AS_MOTOR_ZERO_COMMAND) {
-    throw ::std::invalid_argument("can't parse other command");
+  validate_message_command_id(
+      msg, WRITE_ENCODER_MULTI_TURN_VALUE_TO_ROM_AS_MOTOR_ZERO_COMMAND);
+  return detail::parse_value<uint32_t>(msg, 4, 7);
+}
+
+::cf_motors::bridges::CanMsg
+RMDX::NewWriteCurrentMultiTurnPositionEncoderToROMAsMotorZeroCommand(
+    const uint32_t id) const {
+  return create_message_with_command_code(
+      id, WRITE_MULTI_TURN_POSITION_OF_THE_ENCODER_TO_THE_ROM_AS_ZERO_COMMAND);
+}
+
+uint32_t RMDX::AsWriteCurrentMultiTurnPositionEncoderToROMAsMotorZeroCommand(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  validate_message_command_id(
+      msg, WRITE_MULTI_TURN_POSITION_OF_THE_ENCODER_TO_THE_ROM_AS_ZERO_COMMAND);
+  return detail::parse_value<uint32_t>(msg, 4, 7);
+}
+
+::cf_motors::bridges::CanMsg
+RMDX::NewReadMultiTurnAngleCommand(const uint32_t id) const {
+  return create_message_with_command_code(id, READ_MULTI_TURN_ANGLE_COMMAND);
+}
+
+uint32_t RMDX::AsReadMultiTurnAngleCommandResponse(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  validate_message_command_id(msg, READ_MULTI_TURN_ANGLE_COMMAND);
+  return detail::parse_value<uint32_t>(msg, 4, 7);
+}
+
+::cf_motors::bridges::CanMsg
+RMDX::NewReadMotorStatus1AndErrorFlagCommand(const uint32_t id) const {
+  return create_message_with_command_code(
+      id, READ_MOTOR_STATUS_1_AND_ERROR_FLAG_COMMAND);
+}
+
+rmdx_motor_status_1 RMDX::AsReadMotorStatus1AndErrorFlagCommandResponse(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+
+  validate_message_command_id(msg, READ_MOTOR_STATUS_1_AND_ERROR_FLAG_COMMAND);
+  rmdx_motor_status_1 status;
+  status.temperature = msg.data[1];
+  status.break_release_command = msg.data[3];
+
+  // Parsing voltage and error_state.
+  const uint16_t voltage = detail::parse_value<uint16_t>(msg, 4, 5);
+  const uint16_t error_status = detail::parse_value<uint16_t>(msg, 6, 7);
+  status.voltage = float(voltage) * 0.1;
+  status.error_status = error_status;
+  return status;
+}
+
+::cf_motors::bridges::CanMsg
+RMDX::NewReadMotorStatus2Command(const uint32_t id) const {
+  return create_message_with_command_code(id, READ_MOTOR_STATUS_2_COMMAND);
+}
+rmdx_motor_status_2 RMDX::AsReadMotorStatus2CommandResponse(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  validate_message_command_id(msg, READ_MOTOR_STATUS_2_COMMAND);
+  return parse_motor_status_2_message(msg);
+}
+
+::cf_motors::bridges::CanMsg
+RMDX::NewReadMotorStatus3Command(const uint32_t id) const {
+  return create_message_with_command_code(id, READ_MOTOR_STATUS_3_COMMAND);
+}
+
+rmdx_motor_status_3 RMDX::AsReadMotorStatus3CommandResponse(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  validate_message_command_id(msg, READ_MOTOR_STATUS_3_COMMAND);
+  rmdx_motor_status_3 status;
+  status.temperature = msg.data[1];
+  const uint16_t phase_A = detail::parse_value<uint16_t>(msg, 2, 3);
+  const uint16_t phase_B = detail::parse_value<uint16_t>(msg, 4, 5);
+  const uint16_t phase_C = detail::parse_value<uint16_t>(msg, 6, 7);
+  status.phase_A = float(phase_A) * 0.01;
+  status.phase_B = float(phase_B) * 0.01;
+  status.phase_C = float(phase_C) * 0.01;
+  return status;
+}
+
+::cf_motors::bridges::CanMsg
+RMDX::NewMotorStopCommand(const uint32_t id, const bool need_shutdown) const {
+  if (need_shutdown) {
+    return create_message_with_command_code(id, MOTOR_SHUTDOWN_COMMAND);
+  } else {
+    return create_message_with_command_code(id, MOTOR_STOP_COMMAND);
   }
-  return this->parse_last_4_bytes(msg.data);
+}
+
+void RMDX::AsMotorStopCommandResponse(const ::cf_motors::bridges::CanMsg &msg,
+                                      const bool need_shutdown) const {
+  if (need_shutdown) {
+    validate_message_command_id(msg, MOTOR_SHUTDOWN_COMMAND);
+  } else {
+    validate_message_command_id(msg, MOTOR_STOP_COMMAND);
+  }
+}
+
+::cf_motors::bridges::CanMsg
+RMDX::NewTorqueClosedLoopControlCommand(const uint32_t id,
+                                        const int16_t torque) const {
+  auto msg = create_message_with_command_code(id, TORQUE_CLOSED_LOOP_COMMAND);
+  detail::place_value<int16_t>(msg, torque, 0, 1);
+  return msg;
+}
+
+rmdx_torque_set_response RMDX::AsTorqueClosedLoopControlCommandResponse(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  validate_message_command_id(msg, TORQUE_CLOSED_LOOP_COMMAND);
+  /*
+  Data[1] = 0x32 is 50 in decimal, which means the motor temperature is 50
+  degrees at the moment. The composite data of Data[2] and Data[3] 0x0064 is 100
+  in decimal, and it is 100*0.01=1A when scaled down by 100 times, which means
+  that the actual current of the current motor is 1A. The composite data 0x01F4
+  of Data[4] and Data[5] is 500 in decimal, which means the motor output shaft
+  speed is 500dps. There is a reduction ratio relationship between the motor
+  output shaft speed and the motor speed. If the reduction ratio is 6, then the
+  motor speed is 6 times higher than the output shaft speed. The composite data
+  of Data[6] and Data[7] 0x002D is 45 in decimal, which means that the motor
+  output shaft moves 45 degrees in the positive direction relative to the zero
+  position. The position of the motor output shaft is related to the number of
+  lines of the motor encoder and the reduction ratio. For example, if the number
+  of lines of the motor encoder is 65536 and the reduction ratio is 6, then 360
+  degrees of the motor output shaft corresponds to 65536*6 = 393216 pulses.
+  */
+  rmdx_torque_set_response resp;
+  resp.temperature = msg.data[1];
+  resp.iq = detail::parse_value<uint16_t>(msg, 2, 3);
+  resp.speed = detail::parse_value<uint16_t>(msg, 4, 5);
+  resp.degree = detail::parse_value<uint16_t>(msg, 6, 7);
+  return resp;
+}
+
+::cf_motors::bridges::CanMsg
+RMDX::NewSpeedLoopControlCommand(const uint32_t id,
+                                 const uint32_t speed_control) const {
+  auto msg =
+      create_message_with_command_code(id, SPEED_CLOSED_LOOP_CONTROL_COMMAND);
+  detail::place_value<uint32_t>(msg, speed_control, 4, 7);
+  return msg;
+}
+
+rmdx_torque_set_response RMDX::AsSpeedLoopControlCommandResponse(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+
+  /*
+   Data[1] = 0x32 is 50 in decimal, which means the motor temperature is 50
+   degrees at the moment. The composite data of Data[2] and Data[3] 0x0064 is
+   100 in decimal, and it is 100*0.01=1A when scaled down by 100 times, which
+   means that the actual current of the current motor is 1A. The composite data
+   0x01F4 of Data[4] and Data[5] is 500 in decimal, which means the motor output
+   shaft speed is 500dps. There is a reduction ratio relationship between the
+   motor output shaft speed and the motor speed. If the reduction ratio is 6,
+   then the motor speed is 6 times higher than the output shaft speed. The
+   composite data of Data[6] and Data[7] 0x002D is 45 in decimal, which means
+   that the motor output shaft moves 45 degrees in the positive direction
+   relative to the zero position. The position of the motor output shaft is
+   related to the number of lines of the motor encoder and the reduction ratio.
+   For example, if the number of lines of the motor encoder is 65536 and the
+   reduction ratio is 6, then 360 degrees of the motor output shaft corresponds
+   to 65536*6 = 393216 pulses.
+  */
+  rmdx_torque_set_response resp;
+  resp.temperature = msg.data[1];
+  resp.iq = detail::parse_value<uint16_t>(msg, 2, 3);
+  resp.speed = detail::parse_value<uint16_t>(msg, 4, 5);
+  resp.degree = detail::parse_value<uint16_t>(msg, 6, 7);
+  return resp;
+}
+
+::cf_motors::bridges::CanMsg
+RMDX::NewPositionTrackingControlCommand(const uint32_t id,
+                                        const uint32_t angle) const {
+  auto msg =
+      create_message_with_command_code(id, POSITION_TRACKING_CONTROL_COMMAND);
+  detail::place_value<uint32_t>(msg, angle, 4, 7);
+  return msg;
+}
+
+rmdx_torque_set_response RMDX::AsPositionTrackingControlCommand(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  validate_message_command_id(msg, POSITION_TRACKING_CONTROL_COMMAND);
+  rmdx_torque_set_response resp;
+  resp.temperature = msg.data[1];
+  resp.iq = detail::parse_value<uint16_t>(msg, 2, 3);
+  resp.speed = detail::parse_value<uint16_t>(msg, 4, 5);
+  resp.degree = detail::parse_value<uint16_t>(msg, 6, 7);
+  return resp;
+}
+
+::cf_motors::bridges::CanMsg RMDX::NewAbsolutePositionClosedLoopControlCommand(
+    const uint32_t id, const int32_t angle, const uint16_t speed) const {
+  auto msg = create_message_with_command_code(
+      id, ABSOLUTE_POSITION_CLOSED_LOOP_CONTROL_COMMAND);
+  detail::place_value<uint16_t>(msg, speed, 2, 3);
+  detail::place_value<int32_t>(msg, angle, 4, 7);
+  return msg;
+}
+
+rmdx_torque_set_response
+RMDX::AsAbsolutePositionClosedLoopControlCommandResponse(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  validate_message_command_id(msg,
+                              ABSOLUTE_POSITION_CLOSED_LOOP_CONTROL_COMMAND);
+  rmdx_torque_set_response resp;
+  resp.temperature = msg.data[1];
+  resp.iq = detail::parse_value<uint16_t>(msg, 2, 3);
+  resp.speed = detail::parse_value<uint16_t>(msg, 4, 5);
+  resp.degree = detail::parse_value<uint16_t>(msg, 6, 7);
+  return resp;
+}
+
+::cf_motors::bridges::CanMsg RMDX::NewPositionTrackingCommandWithSpeedLimit(
+    const uint32_t id, const int32_t angle, const uint16_t speed) const {
+  auto msg = create_message_with_command_code(
+      id, POSITION_TRACKING_CONTROL_COMMAND_WITH_SPEED_LIMIT_COMMAND);
+  detail::place_value<uint16_t>(msg, speed, 2, 3);
+  detail::place_value<int32_t>(msg, angle, 4, 7);
+  return msg;
+}
+
+rmdx_torque_set_response RMDX::AsPositionTrackingCommandWithSpeedLimitResponse(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  validate_message_command_id(
+      msg, POSITION_TRACKING_CONTROL_COMMAND_WITH_SPEED_LIMIT_COMMAND);
+  rmdx_torque_set_response resp;
+  resp.temperature = msg.data[1];
+  resp.iq = detail::parse_value<uint16_t>(msg, 2, 3);
+  resp.speed = detail::parse_value<uint16_t>(msg, 4, 5);
+  resp.degree = detail::parse_value<uint16_t>(msg, 6, 7);
+  return resp;
+}
+
+::cf_motors::bridges::CanMsg RMDX::NewIncrementalPositionClosedLoopCommand(
+    const uint32_t id, const int32_t angle, const int16_t speed) const {
+  auto msg = create_message_with_command_code(
+      id, INCREMENTAL_POSITION_CLOSED_LOOP_CONTROL_COMMAND);
+  detail::place_value<int16_t>(msg, speed, 2, 3);
+  detail::place_value<uint32_t>(msg, angle, 4, 7);
+  return msg;
+}
+
+rmdx_torque_set_response RMDX::AsIncrementalPositionClosedLoopCommandResponse(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  validate_message_command_id(msg,
+                              INCREMENTAL_POSITION_CLOSED_LOOP_CONTROL_COMMAND);
+  rmdx_torque_set_response resp;
+  resp.temperature = msg.data[1];
+  resp.iq = detail::parse_value<uint16_t>(msg, 2, 3);
+  resp.speed = detail::parse_value<uint16_t>(msg, 4, 5);
+  resp.degree = detail::parse_value<uint16_t>(msg, 6, 7);
+  return resp;
+}
+
+::cf_motors::bridges::CanMsg
+RMDX::NewSystemOperatingModeAcquisition(const uint32_t id) const {
+  return create_message_with_command_code(
+      id, SYSTEM_OPERATING_MODE_ACQUISITION_COMMAND);
+}
+
+uint8_t RMDX::AsSystemOperatingModeAcquisitionResponse(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  validate_message_command_id(msg, SYSTEM_OPERATING_MODE_ACQUISITION_COMMAND);
+  return msg.data[7];
+}
+
+::cf_motors::bridges::CanMsg
+RMDX::NewMotorPowerAcquisitionCommand(const uint32_t id) const {
+  return create_message_with_command_code(id, MOTOR_POWER_ACQUISITION_COMMAND);
+}
+uint16_t RMDX::AsMotorPowerAcquisitionCommandResponse(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  validate_message_command_id(msg, MOTOR_POWER_ACQUISITION_COMMAND);
+  return detail::parse_value<uint16_t>(msg, 6, 7);
+}
+
+::cf_motors::bridges::CanMsg
+RMDX::NewSystemResetControlCommand(const uint32_t id) const {
+  return create_message_with_command_code(id, SYSTEM_RESET_COMMAND);
+}
+void RMDX::AsSystemResetControlCommandResponse(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  validate_message_command_id(msg, SYSTEM_RESET_COMMAND);
+}
+
+::cf_motors::bridges::CanMsg
+RMDX::NewSystemBreakReleaseCommand(const uint32_t id) const {
+  return create_message_with_command_code(id, SYSTEM_BREAK_RELEASE_COMMAND);
+}
+void RMDX::AsSystemBreakReleaseCommandResponse(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  validate_message_command_id(msg, SYSTEM_BREAK_RELEASE_COMMAND);
+}
+
+::cf_motors::bridges::CanMsg
+RMDX::NewSystemBreakLockCommand(const uint32_t id) const {
+  return create_message_with_command_code(id, SYSTEM_BREAK_LOCK_COMMAND);
+}
+void RMDX::AsSystemBreakLockCommand(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  validate_message_command_id(msg, SYSTEM_BREAK_LOCK_COMMAND);
+}
+
+::cf_motors::bridges::CanMsg
+RMDX::NewSystemRuntimeReadCommand(const uint32_t id) const {
+  return create_message_with_command_code(id, SYSTEM_RUNTIME_READ_COMMAND);
+}
+uint32_t RMDX::AsSystemRuntimeReadCommandResponse(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  validate_message_command_id(msg, SYSTEM_RUNTIME_READ_COMMAND);
+  return detail::parse_value<uint32_t>(msg, 4, 7);
+}
+
+::cf_motors::bridges::CanMsg
+RMDX::NewSystemSoftwareVersionDateReadCommand(const uint32_t id) const {
+  return create_message_with_command_code(id,
+                                          SYSTEM_SOFTWARE_VERSION_READ_COMMAND);
+}
+uint32_t RMDX::AsSystemSoftwareVersionDateReadCommandResponse(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  validate_message_command_id(msg, SYSTEM_SOFTWARE_VERSION_READ_COMMAND);
+  return detail::parse_value<uint32_t>(msg, 4, 7);
+}
+
+::cf_motors::bridges::CanMsg
+RMDX::NewCommunicationInterruptProtectionTimeSettingCommand(
+    const uint32_t id, const uint32_t time) const {
+  auto msg = create_message_with_command_code(
+      id, COMMUNICATION_INTERRUPTION_PROTECTION_TIME_SETTING_COMMAND);
+  detail::place_value<uint32_t>(msg, time, 4, 7);
+  return msg;
+}
+
+uint32_t RMDX::AsCommunicationInterruptProtectionTimeSettingCommand(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  validate_message_command_id(
+      msg, COMMUNICATION_INTERRUPTION_PROTECTION_TIME_SETTING_COMMAND);
+  return detail::parse_value<uint32_t>(msg, 4, 7);
+}
+
+::cf_motors::bridges::CanMsg
+RMDX::NewCommunicationBaudRateSettingCommand(const uint32_t id,
+                                             const uint8_t baud_rate) const {
+  auto msg = create_message_with_command_code(
+      id, COMMUNICATION_BAUD_RATE_SETTING_COMMAND);
+  msg.data[7] = baud_rate;
+  return msg;
+}
+void RMDX::AsCommunicationBaudRateSettingCommandResponse(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  validate_message_command_id(msg, COMMUNICATION_BAUD_RATE_SETTING_COMMAND);
+}
+
+::cf_motors::bridges::CanMsg
+RMDX::NewMotorModelReadingCommand(const uint32_t id) const {
+  return create_message_with_command_code(id, MOTOR_MODEL_READING_COMMAND);
+}
+
+void RMDX::AsMotorModelReadingCommand(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  validate_message_command_id(msg, MOTOR_MODEL_READING_COMMAND);
+}
+
+::cf_motors::bridges::CanMsg
+RMDX::NewFunctionControlCommand(const uint32_t id, const uint8_t index,
+                                const uint32_t value) const {
+  auto msg = create_message_with_command_code(id, FUNCTION_CONTROL_COMMAND);
+  msg.data[1] = index;
+  detail::place_value<uint32_t>(msg, value, 4, 7);
+  return msg;
+}
+uint8_t RMDX::AsFunctionControlCommandResponse(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  validate_message_command_id(msg, FUNCTION_CONTROL_COMMAND);
+  return msg.data[1];
 }
 
 // Helper functions with buff opts.
@@ -294,21 +684,29 @@ RMDX::parse_pid_parameters(const ::std::array<uint8_t, 8> &data) const {
   return actualParameters;
 }
 
-uint32_t RMDX::parse_last_4_bytes(const ::std::array<uint8_t, 8> &data) const {
-  uint32_t acceleration = 0;
-
-  // (data[4] is the lowest bit, data[7] is the highest bit)
-  for (size_t i = 4; i < 8; ++i) {
-    acceleration = (acceleration << 8) | data[i];
-  }
-  return acceleration;
+::cf_motors::bridges::CanMsg
+RMDX::create_message_with_command_code(const uint32_t id,
+                                       const uint8_t cid) const {
+  ::std::array<uint8_t, 8> data;
+  data[0] = cid;
+  return ::cf_motors::bridges::CanMsg{.id = id, .data = data};
 }
 
-void RMDX::place_parameter_in_last_4_bytes(::std::array<uint8_t, 8> &data,
-                                           uint32_t parameter) const {
-  for (size_t i = 0; i < 4; ++i) {
-    data[4 + i] = static_cast<uint8_t>((parameter >> ((3 - i) * 8)) & 0xFF);
+void RMDX::validate_message_command_id(const ::cf_motors::bridges::CanMsg &msg,
+                                       const uint8_t cid) const {
+  if (msg.data[0] != cid) {
+    throw ::std::invalid_argument("can't parse other command");
   }
+}
+
+rmdx_motor_status_2 RMDX::parse_motor_status_2_message(
+    const ::cf_motors::bridges::CanMsg &msg) const {
+  rmdx_motor_status_2 status;
+  status.temperature = msg.data[1];
+  status.torque = detail::parse_value<uint16_t>(msg, 2, 3);
+  status.speed = detail::parse_value<uint16_t>(msg, 4, 5);
+  status.degree = detail::parse_value<uint16_t>(msg, 6, 7);
+  return status;
 }
 
 } // namespace rmdx
