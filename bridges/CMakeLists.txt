@@ -1,5 +1,3 @@
-find_package(Boost)
-
 set(LIBNAME "cf_bridges")
 
 set (BRIDGES_SOURCES
