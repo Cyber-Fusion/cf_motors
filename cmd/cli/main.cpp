@@ -1,8 +1,12 @@
 
 #include <options.hpp>
 
+#include <bridges/can/types.hpp>
+#include <bridges/serial/serial.hpp>
+
 #include <filesystem>
 #include <iostream>
+#include <memory>
 #include <string>
 
 namespace po = boost::program_options;
@@ -18,6 +22,9 @@ int main(int argc, char **argv) {
   std::string command = std::string(argv[1]);
 
   // TODO: Setup all.
+  std::shared_ptr<
+      cf_motors::bridges::SerialToCanSync<cf_motors::bridges::CanMsg>>
+      serial_b;
 
   if (command == "execute") {
     std::cout << "execute\n";

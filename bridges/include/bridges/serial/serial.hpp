@@ -1,59 +1,53 @@
 #pragma once
 
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
 #include <boost/asio.hpp>
 #include <iostream>
+#include <sstream>
 #include <string>
 
-class SerialPortCommunication {
+namespace cf_motors {
+namespace bridges {
+
+// Forward declaration of CanMsg
+struct CanMsg;
+
+// SerialToCanSync class
+// TODO: Use concept Serializable.
+template <typename CommandType> class SerialToCanSync {
 public:
-  SerialPortCommunication(boost::asio::io_service &io_service,
-                          const std::string &port)
-      : io_service_(io_service), serial_port_(io_service, port) {}
+  SerialToCanSync(boost::asio::io_service &io_service, const std::string &port,
+                  const uint32_t baud_rate)
+      : serial_port_(io_service, port) {
+    serial_port_.set_option(
+        boost::asio::serial_port_base::baud_rate(baud_rate));
+  }
 
-  void StartReading() { async_read(); }
+  void SendCommand(const CommandType &command) {
+    std::ostringstream ss;
+    boost::archive::text_oarchive oa(ss);
+    oa << command;
+    std::string serialized_data = ss.str();
+    boost::asio::write(serial_port_, boost::asio::buffer(serialized_data));
+  }
 
-  void SendCommand(const std::string &command) {
-    // Ensure that the command is terminated with a newline character
-    std::string command_with_newline = command + "\n";
-
-    boost::asio::async_write(
-        serial_port_, boost::asio::buffer(command_with_newline),
-        [this, command](const boost::system::error_code &error,
-                        std::size_t /*bytes_transferred*/) {
-          if (!error) {
-            std::cout << "Command sent: " << command << std::endl;
-          } else {
-            std::cerr << "Error sending command: " << error.message()
-                      << std::endl;
-          }
-        });
+  CommandType ReceiveCommand() {
+    boost::asio::streambuf buffer;
+    boost::asio::read_until(serial_port_, buffer, "\n");
+    std::istream is(&buffer);
+    std::string serialized_data;
+    std::getline(is, serialized_data);
+    std::istringstream ss(serialized_data);
+    boost::archive::text_iarchive ia(ss);
+    CommandType command;
+    ia >> command;
+    return command;
   }
 
 private:
-  void async_read() {
-    boost::asio::async_read_until(
-        serial_port_, response_buffer_, '\n',
-        [this](const boost::system::error_code &error,
-               std::size_t bytes_transferred) {
-          if (!error) {
-            // Process the received data
-            std::istream response_stream(&response_buffer_);
-            std::string response;
-            std::getline(response_stream, response);
-
-            std::cout << "Received response: " << response << std::endl;
-
-            // Continue reading
-            async_read();
-          } else {
-            std::cerr << "Error reading from serial port: " << error.message()
-                      << std::endl;
-          }
-        });
-  }
-
-private:
-  boost::asio::io_service &io_service_;
   boost::asio::serial_port serial_port_;
-  boost::asio::streambuf response_buffer_;
 };
+
+} // namespace bridges
+} // namespace cf_motors

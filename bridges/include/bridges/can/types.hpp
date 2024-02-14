@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <iostream>
+#include <sstream>
 
 namespace cf_motors {
 namespace bridges {
@@ -14,6 +15,32 @@ struct CanMsg {
   uint8_t err;
   uint8_t rtr;
   uint8_t eff;
+
+  template <class Archive>
+  void serialize(Archive &ar, const unsigned int version) {
+    ar &id;
+    ar &dlc;
+    ar &data;
+    ar &err;
+    ar &rtr;
+    ar &eff;
+  }
+
+  void deserialize(std::istringstream &is) {
+    is >> id >> dlc;
+    for (auto &d : data) {
+      is >> d;
+    }
+    is >> err >> rtr >> eff;
+  }
+};
+
+// Concept for a serializable type
+template <typename T>
+concept Serializable = requires(T t, std::ostringstream os,
+                                std::istringstream is) {
+  { t.serialize(os) } -> std::same_as<void>;
+  { t.deserialize(is) } -> std::same_as<void>;
 };
 
 template <typename T>
