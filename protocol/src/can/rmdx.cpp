@@ -43,7 +43,7 @@ namespace cf_motors {
 #define MOTOR_MODEL_READING_COMMAND 0xB5
 #define FUNCTION_CONTROL_COMMAND 0x20
 
-namespace rmdx {
+namespace protocol {
 
 namespace detail {
 
@@ -309,11 +309,11 @@ RMDX::NewReadMotorStatus1AndErrorFlagCommand(const uint32_t id) const {
       id, READ_MOTOR_STATUS_1_AND_ERROR_FLAG_COMMAND);
 }
 
-rmdx_motor_status_1 RMDX::AsReadMotorStatus1AndErrorFlagCommandResponse(
+motor_status_1 RMDX::AsReadMotorStatus1AndErrorFlagCommandResponse(
     const ::cf_motors::bridges::CanMsg &msg) const {
 
   validate_message_command_id(msg, READ_MOTOR_STATUS_1_AND_ERROR_FLAG_COMMAND);
-  rmdx_motor_status_1 status;
+  motor_status_1 status;
   status.temperature = msg.data[1];
   status.break_release_command = msg.data[3];
 
@@ -329,7 +329,7 @@ rmdx_motor_status_1 RMDX::AsReadMotorStatus1AndErrorFlagCommandResponse(
 RMDX::NewReadMotorStatus2Command(const uint32_t id) const {
   return create_message_with_command_code(id, READ_MOTOR_STATUS_2_COMMAND);
 }
-rmdx_motor_status_2 RMDX::AsReadMotorStatus2CommandResponse(
+motor_status_2 RMDX::AsReadMotorStatus2CommandResponse(
     const ::cf_motors::bridges::CanMsg &msg) const {
   validate_message_command_id(msg, READ_MOTOR_STATUS_2_COMMAND);
   return parse_motor_status_2_message(msg);
@@ -340,10 +340,10 @@ RMDX::NewReadMotorStatus3Command(const uint32_t id) const {
   return create_message_with_command_code(id, READ_MOTOR_STATUS_3_COMMAND);
 }
 
-rmdx_motor_status_3 RMDX::AsReadMotorStatus3CommandResponse(
+motor_status_3 RMDX::AsReadMotorStatus3CommandResponse(
     const ::cf_motors::bridges::CanMsg &msg) const {
   validate_message_command_id(msg, READ_MOTOR_STATUS_3_COMMAND);
-  rmdx_motor_status_3 status;
+  motor_status_3 status;
   status.temperature = msg.data[1];
   const uint16_t phase_A = detail::parse_value<uint16_t>(msg, 2, 3);
   const uint16_t phase_B = detail::parse_value<uint16_t>(msg, 4, 5);
@@ -380,7 +380,7 @@ RMDX::NewTorqueClosedLoopControlCommand(const uint32_t id,
   return msg;
 }
 
-rmdx_torque_set_response RMDX::AsTorqueClosedLoopControlCommandResponse(
+torque_set_response RMDX::AsTorqueClosedLoopControlCommandResponse(
     const ::cf_motors::bridges::CanMsg &msg) const {
   validate_message_command_id(msg, TORQUE_CLOSED_LOOP_COMMAND);
   /*
@@ -399,7 +399,7 @@ rmdx_torque_set_response RMDX::AsTorqueClosedLoopControlCommandResponse(
   of lines of the motor encoder is 65536 and the reduction ratio is 6, then 360
   degrees of the motor output shaft corresponds to 65536*6 = 393216 pulses.
   */
-  rmdx_torque_set_response resp;
+  torque_set_response resp;
   resp.temperature = msg.data[1];
   resp.iq = detail::parse_value<uint16_t>(msg, 2, 3);
   resp.speed = detail::parse_value<uint16_t>(msg, 4, 5);
@@ -416,7 +416,7 @@ RMDX::NewSpeedLoopControlCommand(const uint32_t id,
   return msg;
 }
 
-rmdx_torque_set_response RMDX::AsSpeedLoopControlCommandResponse(
+torque_set_response RMDX::AsSpeedLoopControlCommandResponse(
     const ::cf_motors::bridges::CanMsg &msg) const {
 
   /*
@@ -436,7 +436,7 @@ rmdx_torque_set_response RMDX::AsSpeedLoopControlCommandResponse(
    reduction ratio is 6, then 360 degrees of the motor output shaft corresponds
    to 65536*6 = 393216 pulses.
   */
-  rmdx_torque_set_response resp;
+  torque_set_response resp;
   resp.temperature = msg.data[1];
   resp.iq = detail::parse_value<uint16_t>(msg, 2, 3);
   resp.speed = detail::parse_value<uint16_t>(msg, 4, 5);
@@ -453,10 +453,10 @@ RMDX::NewPositionTrackingControlCommand(const uint32_t id,
   return msg;
 }
 
-rmdx_torque_set_response RMDX::AsPositionTrackingControlCommand(
+torque_set_response RMDX::AsPositionTrackingControlCommand(
     const ::cf_motors::bridges::CanMsg &msg) const {
   validate_message_command_id(msg, POSITION_TRACKING_CONTROL_COMMAND);
-  rmdx_torque_set_response resp;
+  torque_set_response resp;
   resp.temperature = msg.data[1];
   resp.iq = detail::parse_value<uint16_t>(msg, 2, 3);
   resp.speed = detail::parse_value<uint16_t>(msg, 4, 5);
@@ -473,12 +473,11 @@ rmdx_torque_set_response RMDX::AsPositionTrackingControlCommand(
   return msg;
 }
 
-rmdx_torque_set_response
-RMDX::AsAbsolutePositionClosedLoopControlCommandResponse(
+torque_set_response RMDX::AsAbsolutePositionClosedLoopControlCommandResponse(
     const ::cf_motors::bridges::CanMsg &msg) const {
   validate_message_command_id(msg,
                               ABSOLUTE_POSITION_CLOSED_LOOP_CONTROL_COMMAND);
-  rmdx_torque_set_response resp;
+  torque_set_response resp;
   resp.temperature = msg.data[1];
   resp.iq = detail::parse_value<uint16_t>(msg, 2, 3);
   resp.speed = detail::parse_value<uint16_t>(msg, 4, 5);
@@ -495,11 +494,11 @@ RMDX::AsAbsolutePositionClosedLoopControlCommandResponse(
   return msg;
 }
 
-rmdx_torque_set_response RMDX::AsPositionTrackingCommandWithSpeedLimitResponse(
+torque_set_response RMDX::AsPositionTrackingCommandWithSpeedLimitResponse(
     const ::cf_motors::bridges::CanMsg &msg) const {
   validate_message_command_id(
       msg, POSITION_TRACKING_CONTROL_COMMAND_WITH_SPEED_LIMIT_COMMAND);
-  rmdx_torque_set_response resp;
+  torque_set_response resp;
   resp.temperature = msg.data[1];
   resp.iq = detail::parse_value<uint16_t>(msg, 2, 3);
   resp.speed = detail::parse_value<uint16_t>(msg, 4, 5);
@@ -516,11 +515,11 @@ rmdx_torque_set_response RMDX::AsPositionTrackingCommandWithSpeedLimitResponse(
   return msg;
 }
 
-rmdx_torque_set_response RMDX::AsIncrementalPositionClosedLoopCommandResponse(
+torque_set_response RMDX::AsIncrementalPositionClosedLoopCommandResponse(
     const ::cf_motors::bridges::CanMsg &msg) const {
   validate_message_command_id(msg,
                               INCREMENTAL_POSITION_CLOSED_LOOP_CONTROL_COMMAND);
-  rmdx_torque_set_response resp;
+  torque_set_response resp;
   resp.temperature = msg.data[1];
   resp.iq = detail::parse_value<uint16_t>(msg, 2, 3);
   resp.speed = detail::parse_value<uint16_t>(msg, 4, 5);
@@ -699,9 +698,9 @@ void RMDX::validate_message_command_id(const ::cf_motors::bridges::CanMsg &msg,
   }
 }
 
-rmdx_motor_status_2 RMDX::parse_motor_status_2_message(
+motor_status_2 RMDX::parse_motor_status_2_message(
     const ::cf_motors::bridges::CanMsg &msg) const {
-  rmdx_motor_status_2 status;
+  motor_status_2 status;
   status.temperature = msg.data[1];
   status.torque = detail::parse_value<uint16_t>(msg, 2, 3);
   status.speed = detail::parse_value<uint16_t>(msg, 4, 5);
@@ -709,6 +708,6 @@ rmdx_motor_status_2 RMDX::parse_motor_status_2_message(
   return status;
 }
 
-} // namespace rmdx
+} // namespace protocol
 
 } // namespace cf_motors

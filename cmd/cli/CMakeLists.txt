@@ -4,11 +4,13 @@ set(EXEC_NAME "fc_motor")
 set (
   CLI_HEADERS
   ${CMAKE_CURRENT_SOURCE_DIR}/include/options.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/builder.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/commands/base.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/commands/rotate.hpp
 )
 
 set (CLI_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/options.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/command.cpp
   main.cpp
 )
 
@@ -18,7 +20,7 @@ add_executable(${EXEC_NAME}
 )
 
 target_include_directories(${EXEC_NAME} PRIVATE 
-  ${Boost_INCLUDE_DIR}
+  ${Boost_INCLUDE_DIRS}
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 

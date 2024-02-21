@@ -5,49 +5,10 @@
 #include <mutex>
 #include <shared_mutex>
 
+#include <protocol/can/msg.hpp>
+
 namespace cf_motors {
-namespace rmdx {
-
-enum acceleration_functions {
-  position_planning_acceleration = 0x00,
-  position_planning_deceleration = 0x01,
-  speed_planning_acceleration = 0x02,
-  speed_planning_deceleration = 0x03
-};
-
-enum operating_mode_acquisition {
-  current_loop_mode = 0x01,
-  speed_loop_mode = 0x02,
-  position_loop_mode = 0x03
-};
-
-struct rmdx_motor_status_1 {
-  int8_t temperature = 0;
-  uint8_t break_release_command = 0;
-  float voltage = 0.0;
-  uint16_t error_status = 0;
-};
-
-struct rmdx_motor_status_2 {
-  uint8_t temperature = 0;
-  uint16_t torque = 0;
-  uint16_t speed = 0;
-  uint16_t degree = 0;
-};
-
-struct rmdx_motor_status_3 {
-  uint8_t temperature = 0;
-  float phase_A = 0.0;
-  float phase_B = 0;
-  float phase_C = 0;
-};
-
-struct rmdx_torque_set_response {
-  uint8_t temperature = 0;
-  uint16_t iq = 0;
-  uint16_t speed = 0;
-  uint16_t degree = 0;
-};
+namespace protocol {
 
 class RMDX {
 
@@ -118,17 +79,17 @@ public:
 
   ::cf_motors::bridges::CanMsg
   NewReadMotorStatus1AndErrorFlagCommand(const uint32_t id) const;
-  rmdx_motor_status_1 AsReadMotorStatus1AndErrorFlagCommandResponse(
+  motor_status_1 AsReadMotorStatus1AndErrorFlagCommandResponse(
       const ::cf_motors::bridges::CanMsg &msg) const;
 
   ::cf_motors::bridges::CanMsg
   NewReadMotorStatus2Command(const uint32_t id) const;
-  rmdx_motor_status_2 AsReadMotorStatus2CommandResponse(
+  motor_status_2 AsReadMotorStatus2CommandResponse(
       const ::cf_motors::bridges::CanMsg &msg) const;
 
   ::cf_motors::bridges::CanMsg
   NewReadMotorStatus3Command(const uint32_t id) const;
-  rmdx_motor_status_3 AsReadMotorStatus3CommandResponse(
+  motor_status_3 AsReadMotorStatus3CommandResponse(
       const ::cf_motors::bridges::CanMsg &msg) const;
 
   ::cf_motors::bridges::CanMsg
@@ -139,35 +100,35 @@ public:
   ::cf_motors::bridges::CanMsg
   NewTorqueClosedLoopControlCommand(const uint32_t id,
                                     const int16_t torque) const;
-  rmdx_torque_set_response AsTorqueClosedLoopControlCommandResponse(
+  torque_set_response AsTorqueClosedLoopControlCommandResponse(
       const ::cf_motors::bridges::CanMsg &msg) const;
 
   ::cf_motors::bridges::CanMsg
   NewSpeedLoopControlCommand(const uint32_t id,
                              const uint32_t speed_control) const;
-  rmdx_torque_set_response AsSpeedLoopControlCommandResponse(
+  torque_set_response AsSpeedLoopControlCommandResponse(
       const ::cf_motors::bridges::CanMsg &msg) const;
 
   /* Position tracking control commands. --------------------------------- */
   ::cf_motors::bridges::CanMsg
   NewPositionTrackingControlCommand(const uint32_t id,
                                     const uint32_t angle) const;
-  rmdx_torque_set_response AsPositionTrackingControlCommand(
+  torque_set_response AsPositionTrackingControlCommand(
       const ::cf_motors::bridges::CanMsg &msg) const;
 
   ::cf_motors::bridges::CanMsg NewAbsolutePositionClosedLoopControlCommand(
       const uint32_t id, const int32_t angle, const uint16_t speed) const;
-  rmdx_torque_set_response AsAbsolutePositionClosedLoopControlCommandResponse(
+  torque_set_response AsAbsolutePositionClosedLoopControlCommandResponse(
       const ::cf_motors::bridges::CanMsg &msg) const;
 
   ::cf_motors::bridges::CanMsg NewPositionTrackingCommandWithSpeedLimit(
       const uint32_t id, const int32_t angle, const uint16_t speed) const;
-  rmdx_torque_set_response AsPositionTrackingCommandWithSpeedLimitResponse(
+  torque_set_response AsPositionTrackingCommandWithSpeedLimitResponse(
       const ::cf_motors::bridges::CanMsg &msg) const;
 
   ::cf_motors::bridges::CanMsg NewIncrementalPositionClosedLoopCommand(
       const uint32_t id, const int32_t angle, const int16_t speed) const;
-  rmdx_torque_set_response AsIncrementalPositionClosedLoopCommandResponse(
+  torque_set_response AsIncrementalPositionClosedLoopCommandResponse(
       const ::cf_motors::bridges::CanMsg &msg) const;
 
   /* System commands. --------------------------------- */
@@ -236,7 +197,7 @@ private:
   void validate_message_command_id(const ::cf_motors::bridges::CanMsg &msg,
                                    const uint8_t cid) const;
 
-  rmdx_motor_status_2
+  motor_status_2
   parse_motor_status_2_message(const ::cf_motors::bridges::CanMsg &msg) const;
 
 private:
@@ -255,5 +216,5 @@ private:
   mutable mutex_type guard_;
 };
 
-} // namespace rmdx
+} // namespace protocol
 } // namespace cf_motors

@@ -1,0 +1,26 @@
+{
+  "CAN_ID": 123,
+  "baud_rate": 11500,
+  "actions": [
+    {
+      "type": "rotate",
+      "options": {
+        "angle": 90,
+        "speed": 100,
+        "negative": false
+      }
+    },
+    {
+      "type": "rotate",
+      "options": {
+        "angle": 86,
+        "speed": 91,
+        "negative": true
+      }
+    },
+    {
+      "type": "status",
+      "options": {}
+    }
+  ]
+}
