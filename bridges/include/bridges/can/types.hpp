@@ -20,7 +20,9 @@ struct CanMsg {
   void serialize(Archive &ar, const unsigned int version) {
     ar &id;
     ar &dlc;
-    ar &data;
+    for (std::size_t i = 0; i < 8; ++i) {
+      ar &data[i];
+    }
     ar &err;
     ar &rtr;
     ar &eff;

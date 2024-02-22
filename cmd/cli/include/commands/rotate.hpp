@@ -57,7 +57,7 @@ public:
   //   ar &BOOST_SERIALIZATION_NVP(speed);
   //   ar &BOOST_SERIALIZATION_NVP(rotation_type);
   // }
-  cf_motors::bridges::CanMsg CanMessage() const {
+  cf_motors::bridges::CanMsg CanMessage() override {
     switch (rt_) {
     case position_tracking:
       return m_.NewPositionTrackingControlCommand(id_, angle);

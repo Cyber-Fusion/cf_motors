@@ -7,34 +7,35 @@
 #include <commands/base.hpp>
 #include <commands/rotate.hpp>
 #include <exception>
+#include <memory>
 
 template <CommandCreatorConcept Motor> class CommandBuilder {
 public:
   CommandBuilder(Motor &m) : motor_(m) {}
 
-  const std::vector<cf_motors::bridges::CanMsg> &
+  std::shared_ptr<std::vector<cf_motors::bridges::CanMsg>>
   BuildCommands(const boost::program_options::variables_map &vm);
 
-  const std::vector<cf_motors::bridges::CanMsg> &
+  std::shared_ptr<std::vector<cf_motors::bridges::CanMsg>>
   BuildCommands(const boost::property_tree::ptree pt, const uint32_t can_id);
 
 private:
   Motor &motor_;
-  std::vector<Command> commands_;
 };
 
 template <CommandCreatorConcept Motor>
-const std::vector<cf_motors::bridges::CanMsg> &
+std::shared_ptr<std::vector<cf_motors::bridges::CanMsg>>
 CommandBuilder<Motor>::BuildCommands(
     const boost::program_options::variables_map &vm) {
   // TODO:
-  return std::vector<cf_motors::bridges::CanMsg>();
+  return std::make_shared<std::vector<cf_motors::bridges::CanMsg>>();
 }
 
 template <CommandCreatorConcept Motor>
-const std::vector<cf_motors::bridges::CanMsg> &
+std::shared_ptr<std::vector<cf_motors::bridges::CanMsg>>
 CommandBuilder<Motor>::BuildCommands(const boost::property_tree::ptree pt,
                                      const uint32_t can_id) {
+  std::vector<cf_motors::bridges::CanMsg> commands;
   try {
     for (const auto &action : pt.get_child("actions")) {
       std::string type = action.second.get<std::string>("type");
@@ -42,8 +43,9 @@ CommandBuilder<Motor>::BuildCommands(const boost::property_tree::ptree pt,
       if (type == "rotate") {
         int32_t angle = action.second.get<int32_t>("options.angle");
         int16_t speed = action.second.get<int16_t>("options.speed");
-        commands_.push_back(rotate_command<Motor>(
-            motor_, can_id, angle, speed, absolute_position_closed_loop));
+        auto rc = rotate_command<Motor>(motor_, can_id, angle, speed,
+                                        absolute_position_closed_loop);
+        commands.push_back(rc.CanMessage());
         // TODO: Handle this.
         bool negative = action.second.get<bool>("options.negative");
       } else if (type == "status") {
@@ -55,4 +57,6 @@ CommandBuilder<Motor>::BuildCommands(const boost::property_tree::ptree pt,
   catch (const std::exception &e) {
     throw e; // TODO: Handle this.
   }
+  return std::make_shared<std::vector<cf_motors::bridges::CanMsg>>(
+      std::move(commands));
 }

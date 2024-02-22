@@ -23,6 +23,7 @@ public:
     serial_port_.set_option(
         boost::asio::serial_port_base::baud_rate(baud_rate));
   }
+  SerialToCanSync() = delete;
 
   void SendCommand(const CommandType &command) {
     std::ostringstream ss;
