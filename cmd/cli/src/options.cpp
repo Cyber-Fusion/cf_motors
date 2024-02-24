@@ -11,7 +11,7 @@ cl_options provide_cl_arguments(int argc, char **argv) {
       "Execute commands: cf_motor execute [options]");
 
   rotate_opts.add_options()("radian,r", po::value<std::string>(),
-                            "Radian to rotate")("radian", po::value<int>())(
+                            "Radian to rotate")(
       "side,s", po::value<std::string>(), "neg/pos");
 
   po::options_description from_file("cf_motor file");

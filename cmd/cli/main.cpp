@@ -38,17 +38,17 @@ int main(int argc, char **argv) {
   fs::path basic_config_json_file_path = home_dir / config_file_name;
 
   pt::ptree basic_config_json;
-  if (fileExists(basic_config_json_file_path.string())) {
+  bool configured_from__file = false;
+  if (fileExists(basic_config_json_file_path.string()) &&
+      command != "configure") {
     pt::read_json(basic_config_json_file_path.string(), basic_config_json);
-  } else {
-    std::cout << "configure motor before using.\n";
-    return 1;
+    configured_from__file = true;
   }
 
-  if (command == "execute") {
+  if (command == "execute" && configured_from__file) {
     // Parsing command for simple execution.
     commands = rmdx_command_builder.BuildCommands(opts.vm);
-  } else if (command == "file") {
+  } else if (command == "file" && configured_from__file) {
     // Reading commands from file for execution of commands.
     fs::path commands_file_path = opts.vm.at("file").as<fs::path>();
     pt::ptree commands_json;
