@@ -1,6 +1,6 @@
 {
   "CAN_ID": 123,
-  "baud_rate": 11500,
+  "baud_rate": 115200,
   "actions": [
     {
       "type": "rotate",

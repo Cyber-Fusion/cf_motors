@@ -86,5 +86,16 @@
   "clang-format.assumeFilename": "${workspaceFolder}/.clang-format",
   "cSpell.words": [
     "RMDX"
-  ]
+  ],
+  // Cmake configurations.
+  "cmake.buildDirectory": "${workspaceFolder}/build",
+  "cmake.configureOnEdit" : false,
+  "cmake.loggingLevel": "info",
+  "cmake.generator": "Unix Makefiles",
+
+  "C_Cpp.default.includePath": [
+    "${workspaceFolder}/bridges/include",
+    "${workspaceFolder}/cmd/cli/inlcude",
+    "${workspaceFolder}/protocol/include",
+],
 }
