@@ -7,7 +7,23 @@
           "request": "launch",
           // Resolved by CMake Tools:
           "program": "${command:cmake.launchTargetPath}",
-          "args": [],
+          "preLaunchTask": "build",
+          "externalConsole": false,
+          "args": [
+            // Rotate(execute) arguments.
+            "execute",
+            "--radian", "20",
+            "--side", "neg",
+
+            // Execution from file arguments.
+            // "file",
+            // "--path", "example_config.json"
+
+            // Configuration arguments.
+            // "configure",
+            // "--baud-rate", "115200",
+            // "--can-id", "143",
+          ],
           "stopAtEntry": false,
           "cwd": "${workspaceFolder}",
           "environment": [
@@ -15,6 +31,10 @@
                   "name": "PATH",
                   "value": "${env:PATH}:${command:cmake.getLaunchTargetDirectory}"
               },
+              {
+                "name": "HOME",
+                "value": "${env.HOME}"
+              }
           ],
           "MIMode": "gdb",
           "setupCommands": [

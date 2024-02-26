@@ -1,5 +1,6 @@
 #pragma once
 
+#ifdef __linux__
 #include <bridges/can/types.hpp>
 
 #include <linux/can/raw.h>
@@ -144,3 +145,5 @@ void some_function();
 
 } // namespace bridges
 } // namespace cf_motors
+
+#endif
