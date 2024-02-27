@@ -1,15 +1,18 @@
 
 #include <options.hpp>
 
+#include <bridges/can/types.hpp>
+#include <bridges/serial/serial.hpp>
+#include <protocol/can/rmdx.hpp>
+
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
-#include <bridges/can/types.hpp>
-#include <bridges/serial/serial.hpp>
+
 #include <builder.hpp>
+#include <iomanip>
 #include <iostream>
 #include <memory>
-#include <protocol/can/rmdx.hpp>
 #include <string>
 
 namespace po = boost::program_options;
@@ -80,24 +83,27 @@ int main(int argc, char **argv) {
       return 1;
     }
 
-    boost::asio::io_service io_service;
-    std::shared_ptr<
-        cf_motors::bridges::SerialToCanSync<cf_motors::bridges::CanMsg>>
-        serial_b = std::make_shared<
-            cf_motors::bridges::SerialToCanSync<cf_motors::bridges::CanMsg>>(
-            io_service, basic_config_json.get<std::string>("serial-port"),
-            basic_config_json.get<uint32_t>("baud-rate"));
+    // boost::asio::io_service io_service;
+    // std::shared_ptr<
+    //     cf_motors::bridges::SerialToCanSync<cf_motors::bridges::CanMsg>>
+    //     serial_b = std::make_shared<
+    //         cf_motors::bridges::SerialToCanSync<cf_motors::bridges::CanMsg>>(
+    //         io_service, basic_config_json.get<std::string>("serial-port"),
+    //         basic_config_json.get<uint32_t>("baud-rate"));
 
     for (auto it = commands->begin(); it != commands->end(); ++it) {
-      serial_b->SendCommand(*it);
-      auto response = serial_b->ReceiveCommand();
+      // serial_b->SendCommand(*it);
+      // auto response = serial_b->ReceiveCommand();
+      auto response = *it;
       std::cout << "--- Response ---\n";
+      std::cout << std::hex;
       std::cout << "id: " << response.id << ", dlc: " << response.dlc
                 << ", err: " << response.err << ", rtr: " << response.rtr
                 << ", e(ff: " << response.eff << "\n";
       for (auto &b : response.data) {
         std::cout << " " << b;
       }
+      std::cout << std::dec;
       std::cout << "\n------\n";
     }
   } catch (const std::exception &ex) {

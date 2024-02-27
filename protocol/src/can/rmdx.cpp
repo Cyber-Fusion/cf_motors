@@ -66,13 +66,12 @@ T parse_value(const ::cf_motors::bridges::CanMsg &msg, const size_t from,
 template <PrimitiveType T>
 void place_value(::cf_motors::bridges::CanMsg &msg, const T value,
                  const size_t from, const size_t to) {
-  assert(sizeof(T) == (to - from + 1));
+  size_t vsize = sizeof(T) - 1;
+  assert(vsize == (to - from));
   assert((to > from) && (to < 8));
 
-  const size_t vsize = sizeof(T) - 1;
   for (size_t i = from; i <= to; ++i) {
-    msg.data[from + i] =
-        static_cast<uint8_t>((value >> ((vsize - i) * 8)) & 0xFF);
+    msg.data[i] = static_cast<uint8_t>((value >> (vsize-- * 8)) & 0xFF);
   }
 }
 } // namespace detail
