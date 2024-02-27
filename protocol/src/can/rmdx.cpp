@@ -66,7 +66,7 @@ T parse_value(const ::cf_motors::bridges::CanMsg &msg, const size_t from,
 template <PrimitiveType T>
 void place_value(::cf_motors::bridges::CanMsg &msg, const T value,
                  const size_t from, const size_t to) {
-  assert(sizeof(T) == (to - from));
+  assert(sizeof(T) == (to - from + 1));
   assert((to > from) && (to < 8));
 
   const size_t vsize = sizeof(T) - 1;
@@ -686,7 +686,7 @@ RMDX::parse_pid_parameters(const ::std::array<uint8_t, 8> &data) const {
 ::cf_motors::bridges::CanMsg
 RMDX::create_message_with_command_code(const uint32_t id,
                                        const uint8_t cid) const {
-  ::std::array<uint8_t, 8> data;
+  ::std::array<uint8_t, 8> data{0};
   data[0] = cid;
   return ::cf_motors::bridges::CanMsg{.id = id, .data = data};
 }

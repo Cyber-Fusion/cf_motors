@@ -14,7 +14,8 @@ public:
   CommandBuilder(Motor &m) : motor_(m) {}
 
   std::shared_ptr<std::vector<cf_motors::bridges::CanMsg>>
-  BuildCommands(const boost::program_options::variables_map &vm);
+  BuildCommands(const boost::program_options::variables_map &vm,
+                const uint32_t can_id);
 
   std::shared_ptr<std::vector<cf_motors::bridges::CanMsg>>
   BuildCommands(const boost::property_tree::ptree pt, const uint32_t can_id);
@@ -26,9 +27,22 @@ private:
 template <CommandCreatorConcept Motor>
 std::shared_ptr<std::vector<cf_motors::bridges::CanMsg>>
 CommandBuilder<Motor>::BuildCommands(
-    const boost::program_options::variables_map &vm) {
-  // TODO:
-  return std::make_shared<std::vector<cf_motors::bridges::CanMsg>>();
+    const boost::program_options::variables_map &vm, const uint32_t can_id) {
+
+  std::vector<cf_motors::bridges::CanMsg> commands;
+  if (vm.count("radian")) {
+    if (!vm.count("side")) {
+      throw std::invalid_argument("side not provided");
+    }
+    int32_t radian = vm.at("radian").as<int32_t>();
+    std::string side = vm.at("side").as<std::string>();
+    auto rc = rotate_command<Motor>(motor_, can_id, radian, 10,
+                                    absolute_position_closed_loop);
+    commands.push_back(rc.CanMessage());
+  }
+
+  return std::make_shared<std::vector<cf_motors::bridges::CanMsg>>(
+      std::move(commands));
 }
 
 template <CommandCreatorConcept Motor>
@@ -52,10 +66,8 @@ CommandBuilder<Motor>::BuildCommands(const boost::property_tree::ptree pt,
         // TODO:
       }
     }
-  }
-
-  catch (const std::exception &e) {
-    throw e; // TODO: Handle this.
+  } catch (const std::exception &e) {
+    throw e;
   }
   return std::make_shared<std::vector<cf_motors::bridges::CanMsg>>(
       std::move(commands));

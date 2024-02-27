@@ -20,22 +20,11 @@ concept CommandCreatorConcept =
     creator.NewAbsolutePositionClosedLoopControlCommand(id, angle, speed)
     } -> std::same_as<cf_motors::bridges::CanMsg>;
   {
-    creator.AsAbsolutePositionClosedLoopControlCommandResponse(msg)
-    } -> std::same_as<cf_motors::protocol::torque_set_response>;
-
-  {
     creator.NewPositionTrackingCommandWithSpeedLimit(id, angle, speed)
     } -> std::same_as<cf_motors::bridges::CanMsg>;
   {
-    creator.AsPositionTrackingCommandWithSpeedLimitResponse(msg)
-    } -> std::same_as<cf_motors::protocol::torque_set_response>;
-
-  {
     creator.NewIncrementalPositionClosedLoopCommand(id, angle, speed)
     } -> std::same_as<cf_motors::bridges::CanMsg>;
-  {
-    creator.AsIncrementalPositionClosedLoopCommandResponse(msg)
-    } -> std::same_as<cf_motors::protocol::torque_set_response>;
 };
 
 template <CommandCreatorConcept Motor> struct rotate_command : public Command {

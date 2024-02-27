@@ -97,5 +97,20 @@
     "${workspaceFolder}/bridges/include",
     "${workspaceFolder}/cmd/cli/inlcude",
     "${workspaceFolder}/protocol/include",
-],
+  ],
+  "cmake.debugConfig": {
+    "args": [
+      "execute",
+      "--radian", "20",
+      "--side", "neg",
+      //  Execution from file arguments.
+      // "file",
+      // "--path", "/home/artashes/projects/ROS2/cf_motors/example_config.json"
+
+      // Configuration arguments.
+      // "configure",
+      // "--baud-rate", "115200",
+      // "--can-id", "143",
+    ]
+  },
 }
