@@ -109,6 +109,7 @@
 
       // Configuration arguments.
       // "configure",
+      // "--serial-port", "/dev/ttyUSB0",
       // "--baud-rate", "115200",
       // "--can-id", "143",
     ]

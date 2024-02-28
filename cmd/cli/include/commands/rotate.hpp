@@ -29,15 +29,15 @@ concept CommandCreatorConcept =
 
 template <CommandCreatorConcept Motor> struct rotate_command : public Command {
   uint32_t id_;
-  int32_t angle;
-  uint16_t speed;
+  int32_t angle_;
+  uint16_t speed_;
   rotation_type rt_;
   Motor &m_;
 
 public:
   rotate_command(Motor &m, const uint32_t id, const int32_t angle,
                  const int16_t speed, const rotation_type t)
-      : m_(m), angle(angle), speed(speed), rt_(t) {}
+      : m_(m), id_(id), angle_(angle), speed_(speed), rt_(t) {}
   rotate_command() = delete;
 
   // template <typename ArchiveT>
@@ -46,18 +46,33 @@ public:
   //   ar &BOOST_SERIALIZATION_NVP(speed);
   //   ar &BOOST_SERIALIZATION_NVP(rotation_type);
   // }
-  cf_motors::bridges::CanMsg CanMessage() override {
+  UARTProxyCommand CanMessage() override {
+    cf_motors::bridges::CanMsg command;
     switch (rt_) {
     case position_tracking:
-      return m_.NewPositionTrackingControlCommand(id_, angle);
+      command = m_.NewPositionTrackingControlCommand(id_, angle_);
+      break;
     case absolute_position_closed_loop:
-      return m_.NewAbsolutePositionClosedLoopControlCommand(id_, angle, speed);
+      command =
+          m_.NewAbsolutePositionClosedLoopControlCommand(id_, angle_, speed_);
+      break;
     case position_tracking_with_speed_limit:
-      return m_.NewPositionTrackingCommandWithSpeedLimit(id_, angle, speed);
+      command =
+          m_.NewPositionTrackingCommandWithSpeedLimit(id_, angle_, speed_);
+      break;
     case incremental_position_loop:
-      return m_.NewIncrementalPositionClosedLoopCommand(id_, angle, speed);
+      command = m_.NewIncrementalPositionClosedLoopCommand(id_, angle_, speed_);
+      break;
     default:
       throw std::runtime_error("invalid command type");
     }
+    return translateCANToUART(command);
+  }
+
+private:
+  UARTProxyCommand translateCANToUART(cf_motors::bridges::CanMsg &msg) {
+    return UARTProxyCommand{.id = static_cast<uint16_t>(msg.id),
+                            .data =
+                                std::array<uint8_t, 8>(std::move(msg.data))};
   }
 };

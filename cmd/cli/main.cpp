@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
     cf_motors::protocol::RMDX rmdx_motor;
     CommandBuilder<cf_motors::protocol::RMDX> rmdx_command_builder(rmdx_motor);
 
-    std::shared_ptr<std::vector<cf_motors::bridges::CanMsg>> commands;
+    std::shared_ptr<std::vector<UARTProxyCommand>> commands;
 
     fs::path home_dir(std::getenv("HOME"));
     fs::path config_file_name(".cf_motors.json");
@@ -83,27 +83,23 @@ int main(int argc, char **argv) {
       return 1;
     }
 
-    // boost::asio::io_service io_service;
-    // std::shared_ptr<
-    //     cf_motors::bridges::SerialToCanSync<cf_motors::bridges::CanMsg>>
-    //     serial_b = std::make_shared<
-    //         cf_motors::bridges::SerialToCanSync<cf_motors::bridges::CanMsg>>(
-    //         io_service, basic_config_json.get<std::string>("serial-port"),
-    //         basic_config_json.get<uint32_t>("baud-rate"));
+    boost::asio::io_service io_service;
+    std::shared_ptr<cf_motors::bridges::SerialToCanSync<UARTProxyCommand>>
+        serial_b = std::make_shared<
+            cf_motors::bridges::SerialToCanSync<UARTProxyCommand>>(
+            io_service, basic_config_json.get<std::string>("serial-port"),
+            basic_config_json.get<uint32_t>("baud-rate"));
 
+    std::cout << std::hex;
     for (auto it = commands->begin(); it != commands->end(); ++it) {
-      // serial_b->SendCommand(*it);
-      // auto response = serial_b->ReceiveCommand();
-      auto response = *it;
+      serial_b->SendCommand(*it);
+      auto response = serial_b->ReceiveCommand();
       std::cout << "--- Response ---\n";
-      std::cout << std::hex;
-      std::cout << "id: " << response.id << ", dlc: " << response.dlc
-                << ", err: " << response.err << ", rtr: " << response.rtr
-                << ", e(ff: " << response.eff << "\n";
+      std::cout << "id: " << response.id;
+      std::cout << "data: ";
       for (auto &b : response.data) {
         std::cout << " " << b;
       }
-      std::cout << std::dec;
       std::cout << "\n------\n";
     }
   } catch (const std::exception &ex) {

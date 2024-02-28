@@ -70,6 +70,7 @@ void place_value(::cf_motors::bridges::CanMsg &msg, const T value,
   assert(vsize == (to - from));
   assert((to > from) && (to < 8));
 
+  // TODO: Find out buffer filling order.
   for (size_t i = from; i <= to; ++i) {
     msg.data[i] = static_cast<uint8_t>((value >> (vsize-- * 8)) & 0xFF);
   }
