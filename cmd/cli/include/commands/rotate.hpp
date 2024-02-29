@@ -13,7 +13,7 @@ enum rotation_type {
 };
 
 template <typename T>
-concept CommandCreatorConcept =
+concept RotateCommandCreatorConcept =
     requires(T creator, uint32_t id, int32_t angle, uint16_t speed,
              const cf_motors::bridges::CanMsg &msg) {
   {
@@ -27,7 +27,8 @@ concept CommandCreatorConcept =
     } -> std::same_as<cf_motors::bridges::CanMsg>;
 };
 
-template <CommandCreatorConcept Motor> struct rotate_command : public Command {
+template <RotateCommandCreatorConcept Motor>
+struct rotate_command : public Command {
   uint32_t id_;
   int32_t angle_;
   uint16_t speed_;
@@ -46,7 +47,7 @@ public:
   //   ar &BOOST_SERIALIZATION_NVP(speed);
   //   ar &BOOST_SERIALIZATION_NVP(rotation_type);
   // }
-  UARTProxyCommand CanMessage() override {
+  UARTProxyCommand Message() override {
     cf_motors::bridges::CanMsg command;
     switch (rt_) {
     case position_tracking:
@@ -67,12 +68,5 @@ public:
       throw std::runtime_error("invalid command type");
     }
     return translateCANToUART(command);
-  }
-
-private:
-  UARTProxyCommand translateCANToUART(cf_motors::bridges::CanMsg &msg) {
-    return UARTProxyCommand{.id = static_cast<uint16_t>(msg.id),
-                            .data =
-                                std::array<uint8_t, 8>(std::move(msg.data))};
   }
 };

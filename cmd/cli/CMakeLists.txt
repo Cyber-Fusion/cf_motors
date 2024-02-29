@@ -7,6 +7,7 @@ set (
   ${CMAKE_CURRENT_SOURCE_DIR}/include/builder.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/commands/base.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/include/commands/rotate.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/commands/status.hpp
 )
 
 set (CLI_SOURCES
