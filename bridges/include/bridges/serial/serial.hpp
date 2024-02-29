@@ -32,10 +32,8 @@ public:
     std::istream is(&buffer);
     std::string serialized_data;
     std::getline(is, serialized_data);
-    std::istringstream ss(serialized_data);
-    boost::archive::text_iarchive ia(ss);
     CommandType command;
-    ia >> command;
+    command.Deserialize(serialized_data);
     return command;
   }
 

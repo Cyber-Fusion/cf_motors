@@ -34,6 +34,18 @@ struct UARTProxyCommand {
 
     return buf;
   }
+
+  void Deserialize(std::string &serialized) {
+    if (serialized.size() < sizeof(UARTProxyCommand)) {
+      throw std::runtime_error("invalid buffer");
+    }
+    id = (static_cast<uint16_t>(serialized[0]) << 8) |
+         static_cast<uint16_t>(serialized[1]);
+
+    const uint8_t *bytes =
+        reinterpret_cast<const uint8_t *>(&serialized[sizeof(id)]);
+    std::copy(bytes, bytes + sizeof(data), data.begin());
+  }
 };
 
 struct Command {

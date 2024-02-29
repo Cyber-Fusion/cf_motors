@@ -46,9 +46,9 @@ struct CanMsg {
 
 // Concept for a serializable type
 template <typename T>
-concept Serializable = requires(T t, std::ostringstream os,
-                                std::istringstream is) {
+concept Serializable = requires(T t, std::string serialized) {
   { t.Serialize() } -> std::same_as<std::vector<uint8_t>>;
+  { t.Deserialize(serialized) } -> std::same_as<void>;
 };
 
 template <typename T>
