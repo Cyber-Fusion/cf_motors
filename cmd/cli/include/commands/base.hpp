@@ -8,8 +8,8 @@ struct UARTProxyCommand {
 
   template <class Archive>
   void serialize(Archive &ar, const unsigned int version) {
-    auto can_id = (id & 0xFFFF);
     ar &id;
+
     for (std::size_t i = 0; i < 8; ++i) {
       ar &data[i];
     }
@@ -17,9 +17,22 @@ struct UARTProxyCommand {
 
   void deserialize(std::istringstream &is) {
     is >> id;
+
     for (auto &d : data) {
       is >> d;
     }
+  }
+
+  std::vector<uint8_t> Serialize() const {
+    std::vector<uint8_t> buf(10);
+
+    buf[0] = (id >> 8) & 0xFF; // MSB first
+    buf[1] = id & 0xFF;        // LSB second
+
+    const uint8_t *bytes = reinterpret_cast<const uint8_t *>(&data);
+    std::copy(bytes, bytes + sizeof(data), buf.begin() + sizeof(id));
+
+    return buf;
   }
 };
 

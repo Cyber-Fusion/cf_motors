@@ -35,16 +35,16 @@ template <CommandCreatorConcept Motor>
 std::shared_ptr<std::vector<UARTProxyCommand>>
 CommandBuilder<Motor>::BuildCommands(
     const boost::program_options::variables_map &vm, const uint32_t can_id) {
-
   std::vector<UARTProxyCommand> commands;
-  commands.push_back(status_command<Motor>(motor_, can_id, status_1).Message());
+
   if (vm.count("radian")) {
-    if (!vm.count("side")) {
+    if (!vm.count("direction") || !vm.count("speed")) {
       throw std::invalid_argument("side not provided");
     }
     int32_t radian = vm.at("radian").as<int32_t>();
-    std::string side = vm.at("side").as<std::string>();
-    auto rc = rotate_command<Motor>(motor_, can_id, radian, 10,
+    std::string direction = vm.at("direction").as<std::string>();
+    uint8_t speed = vm.at("speed").as<uint16_t>();
+    auto rc = rotate_command<Motor>(motor_, can_id, radian, speed,
                                     absolute_position_closed_loop);
     commands.push_back(rc.Message());
   }
@@ -57,8 +57,6 @@ std::shared_ptr<std::vector<UARTProxyCommand>>
 CommandBuilder<Motor>::BuildCommands(const boost::property_tree::ptree pt,
                                      const uint32_t can_id) {
   std::vector<UARTProxyCommand> commands;
-  // Pushing basic status reading command as first.
-  commands.push_back(status_command<Motor>(motor_, can_id, status_1).Message());
 
   try {
     for (const auto &action : pt.get_child("actions")) {
@@ -70,7 +68,7 @@ CommandBuilder<Motor>::BuildCommands(const boost::property_tree::ptree pt,
         auto rc = rotate_command<Motor>(motor_, can_id, angle, speed,
                                         absolute_position_closed_loop);
         commands.push_back(rc.Message());
-        // TODO: Handle this.
+        // TODO: Handle direction.
         bool negative = action.second.get<bool>("options.negative");
       } else if (type == "status") {
         // TODO:

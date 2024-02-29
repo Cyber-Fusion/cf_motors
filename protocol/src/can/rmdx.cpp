@@ -66,13 +66,13 @@ T parse_value(const ::cf_motors::bridges::CanMsg &msg, const size_t from,
 template <PrimitiveType T>
 void place_value(::cf_motors::bridges::CanMsg &msg, const T value,
                  const size_t from, const size_t to) {
-  size_t vsize = sizeof(T) - 1;
-  assert(vsize == (to - from));
+  assert((sizeof(T) - 1) == (to - from));
   assert((to > from) && (to < 8));
 
   // TODO: Find out buffer filling order.
-  for (size_t i = from; i <= to; ++i) {
-    msg.data[i] = static_cast<uint8_t>((value >> (vsize-- * 8)) & 0xFF);
+  int shifter = 0;
+  for (size_t i = from; i <= to; ++i, ++shifter) {
+    msg.data[i] = static_cast<uint8_t>((value >> (shifter * 8)) & 0xFF);
   }
 }
 } // namespace detail

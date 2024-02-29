@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <iostream>
 #include <sstream>
+#include <vector>
 
 namespace cf_motors {
 namespace bridges {
@@ -35,14 +36,19 @@ struct CanMsg {
     }
     is >> err >> rtr >> eff;
   }
+
+  std::vector<uint8_t> Serialize() const {
+    std::vector<uint8_t> buf;
+    // TODO: Complete the Serialize function for current struct.
+    return buf;
+  }
 };
 
 // Concept for a serializable type
 template <typename T>
 concept Serializable = requires(T t, std::ostringstream os,
                                 std::istringstream is) {
-  { t.serialize(os) } -> std::same_as<void>;
-  { t.deserialize(is) } -> std::same_as<void>;
+  { t.Serialize() } -> std::same_as<std::vector<uint8_t>>;
 };
 
 template <typename T>

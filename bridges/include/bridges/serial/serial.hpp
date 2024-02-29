@@ -6,16 +6,12 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 namespace cf_motors {
 namespace bridges {
 
-// Forward declaration of CanMsg
-struct CanMsg;
-
-// SerialToCanSync class
-// TODO: Use concept Serializable.
-template <typename CommandType> class SerialToCanSync {
+template <Serializable CommandType> class SerialToCanSync {
 public:
   SerialToCanSync(boost::asio::io_service &io_service, const std::string &port,
                   const uint32_t baud_rate)
@@ -26,11 +22,8 @@ public:
   SerialToCanSync() = delete;
 
   void SendCommand(const CommandType &command) {
-    std::ostringstream ss;
-    boost::archive::text_oarchive oa(ss);
-    oa << command;
-    std::string serialized_data = ss.str();
-    boost::asio::write(serial_port_, boost::asio::buffer(serialized_data));
+    auto buf = command.Serialize();
+    boost::asio::write(serial_port_, boost::asio::buffer(buf));
   }
 
   CommandType ReceiveCommand() {
@@ -48,6 +41,13 @@ public:
 
 private:
   boost::asio::serial_port serial_port_;
+
+  std::string serialize_with_archive(const CommandType &command) {
+    std::ostringstream ss;
+    boost::archive::text_oarchive oa(ss);
+    oa << command;
+    return ss.str();
+  }
 };
 
 } // namespace bridges

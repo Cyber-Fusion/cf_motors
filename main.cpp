@@ -46,7 +46,8 @@ int main() {
 
   // Configure the serial port and other parameters
   // You may need to adjust the serial port name and baud rate
-  const std::string serialPort = "/dev/ttyS1"; // Replace with your serial port
+  const std::string serialPort =
+      "/dev/ttyCH341USB0"; // Replace with your serial port
   const int baudRate = 115200;
 
   boost::asio::io_context io;

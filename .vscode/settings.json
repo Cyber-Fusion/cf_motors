@@ -101,8 +101,9 @@
   "cmake.debugConfig": {
     "args": [
       "execute",
-      "--radian", "219002",
-      "--side", "neg",
+      "--radian", "216",
+      "--direction", "neg",
+      "--speed", "200",
       //  Execution from file arguments.
       // "file",
       // "--path", "/home/artashes/projects/ROS2/cf_motors/example_config.json"

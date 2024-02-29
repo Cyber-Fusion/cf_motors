@@ -41,12 +41,6 @@ public:
       : m_(m), id_(id), angle_(angle), speed_(speed), rt_(t) {}
   rotate_command() = delete;
 
-  // template <typename ArchiveT>
-  // inline void serialize(ArchiveT &ar, const unsigned int file_version) {
-  //   ar &BOOST_SERIALIZATION_NVP(angle);
-  //   ar &BOOST_SERIALIZATION_NVP(speed);
-  //   ar &BOOST_SERIALIZATION_NVP(rotation_type);
-  // }
   UARTProxyCommand Message() override {
     cf_motors::bridges::CanMsg command;
     switch (rt_) {

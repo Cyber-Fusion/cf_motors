@@ -12,7 +12,8 @@ cl_options provide_cl_arguments(int argc, char **argv) {
 
   rotate_opts.add_options()("radian,r", po::value<int32_t>(),
                             "Radian to rotate")(
-      "side,s", po::value<std::string>(), "neg/pos");
+      "direction,d", po::value<std::string>(),
+      "neg/pos")("speed,s", po::value<uint16_t>(), "Speed of rotations");
 
   po::options_description from_file("cf_motor file");
   from_file.add_options()("path,p", po::value<boost::filesystem::path>(),
