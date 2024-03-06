@@ -1,5 +1,7 @@
 set(EXEC_NAME "fc_motor")
 
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
 
 set (
   CLI_HEADERS
@@ -30,6 +32,7 @@ target_link_libraries(${EXEC_NAME}
   cf_bridges
   protocol
   ${Boost_LIBRARIES}
+  Threads::Threads
 )
 
 set_property(TARGET ${EXEC_NAME} PROPERTY CXX_STANDARD 20)

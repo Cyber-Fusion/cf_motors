@@ -10,10 +10,12 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include <builder.hpp>
+#include <chrono>
 #include <iomanip>
 #include <iostream>
 #include <memory>
 #include <string>
+#include <thread>
 
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
@@ -83,6 +85,7 @@ int main(int argc, char **argv) {
       return 1;
     }
 
+    std::cout << "trying to connect with serial port\n";
     boost::asio::io_service io_service;
     std::shared_ptr<cf_motors::bridges::SerialToCanSync<UARTProxyCommand>>
         serial_b = std::make_shared<
@@ -90,9 +93,15 @@ int main(int argc, char **argv) {
             io_service, basic_config_json.get<std::string>("serial-port"),
             basic_config_json.get<uint32_t>("baud-rate"));
 
+    std::cout << "starting execution of commands\n";
     std::cout << std::hex;
-    for (auto it = commands->begin(); it != commands->end(); ++it) {
+
+    int command_counter = 0;
+    for (auto it = commands->begin(); it != commands->end();
+         ++it, ++command_counter) {
+      std::cout << "sending command " << command_counter << "\n";
       serial_b->SendCommand(*it);
+      std::cout << "receiving command " << command_counter << "\n";
       auto response = serial_b->ReceiveCommand();
       std::cout << "--- Response ---\n";
       std::cout << "id: " << response.id;
@@ -101,6 +110,9 @@ int main(int argc, char **argv) {
         std::cout << " " << b;
       }
       std::cout << "\n------\n";
+
+      std::cout << "sleeping 1s on iteration " << command_counter << "\n";
+      std::this_thread::sleep_for(std::chrono::seconds(1));
     }
   } catch (const std::exception &ex) {
     std::cout << ex.what() << std::endl;

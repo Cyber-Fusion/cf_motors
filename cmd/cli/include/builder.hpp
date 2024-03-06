@@ -37,10 +37,14 @@ CommandBuilder<Motor>::BuildCommands(
     const boost::program_options::variables_map &vm, const uint32_t can_id) {
   std::vector<UARTProxyCommand> commands;
 
+  // First we need to push status reading command.
+  commands.push_back(status_command<Motor>(motor_, can_id, status_2).Message());
+
   if (vm.count("radian")) {
     if (!vm.count("direction") || !vm.count("speed")) {
       throw std::invalid_argument("side not provided");
     }
+    std::cout << "building rotation command\n";
     int32_t radian = vm.at("radian").as<int32_t>();
     std::string direction = vm.at("direction").as<std::string>();
     uint8_t speed = vm.at("speed").as<uint16_t>();
@@ -58,11 +62,15 @@ CommandBuilder<Motor>::BuildCommands(const boost::property_tree::ptree pt,
                                      const uint32_t can_id) {
   std::vector<UARTProxyCommand> commands;
 
+  // First we need to push status reading command.
+  commands.push_back(status_command<Motor>(motor_, can_id, status_2).Message());
+
   try {
     for (const auto &action : pt.get_child("actions")) {
       std::string type = action.second.get<std::string>("type");
 
       if (type == "rotate") {
+        std::cout << "building rotation command\n";
         int32_t angle = action.second.get<int32_t>("options.angle");
         int16_t speed = action.second.get<int16_t>("options.speed");
         auto rc = rotate_command<Motor>(motor_, can_id, angle, speed,
@@ -71,6 +79,7 @@ CommandBuilder<Motor>::BuildCommands(const boost::property_tree::ptree pt,
         // TODO: Handle direction.
         bool negative = action.second.get<bool>("options.negative");
       } else if (type == "status") {
+        std::cout << "building status reading command\n";
         // TODO:
       }
     }
